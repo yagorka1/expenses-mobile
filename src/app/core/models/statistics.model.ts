@@ -13,7 +13,7 @@ export interface BreakdownItem {
   key: string;
   label: string;
   amount: number;
-  /** Fraction of the period total, 0..1. */
+  /** 0..1: fraction of the period total, or of the parent category for subcategories. */
   share: number;
   children: BreakdownItem[];
 }

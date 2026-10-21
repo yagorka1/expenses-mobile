@@ -13,14 +13,19 @@ export function parseAmount(value: string): number {
   return Number(value.trim().replace(',', '.'));
 }
 
-/** Converts an amount into every supported currency through EUR, like expenses-server did. */
-export function convertToAllCurrencies(amount: number, currency: CurrencyCode, eurRates: EurRates): CurrencyAmounts {
-  const amountInEur = amount / eurRates[currency];
+/** Converts through EUR, like expenses-server did; not rounded. */
+export function convertAmount(amount: number, from: CurrencyCode, to: CurrencyCode, eurRates: EurRates): number {
+  return from === to ? amount : (amount / eurRates[from]) * eurRates[to];
+}
 
+/** Converts an amount into every supported currency. */
+export function convertToAllCurrencies(amount: number, currency: CurrencyCode, eurRates: EurRates): CurrencyAmounts {
   return Object.fromEntries(
-    CURRENCIES.map((target) => [
-      target,
-      target === currency ? roundMoney(amount) : roundMoney(amountInEur * eurRates[target]),
-    ]),
+    CURRENCIES.map((target) => [target, roundMoney(convertAmount(amount, currency, target, eurRates))]),
   );
+}
+
+/** Migrated expenses may have no or only some conversions. */
+export function hasAllAmounts(amounts: CurrencyAmounts): boolean {
+  return CURRENCIES.every((code) => amounts[code] !== undefined);
 }

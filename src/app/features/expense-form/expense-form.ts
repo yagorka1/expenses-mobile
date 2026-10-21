@@ -44,7 +44,14 @@ export function toExpenseFormModel(expense: Expense): ExpenseFormModel {
   };
 }
 
-export function toExpenseDraft(model: ExpenseFormModel, category: Category, subcategory: Subcategory): ExpenseDraft {
+/** `originalDate` is kept while the day stays the same, so an edit doesn't reset the time to noon. */
+export function toExpenseDraft(
+  model: ExpenseFormModel,
+  category: Category,
+  subcategory: Subcategory,
+  originalDate?: Date,
+): ExpenseDraft {
+  const keepDate = originalDate && toDateInputValue(originalDate) === model.date;
   return {
     amount: parseAmount(model.amount),
     currency: model.currency,
@@ -54,6 +61,6 @@ export function toExpenseDraft(model: ExpenseFormModel, category: Category, subc
     subcategoryName: subcategory.name,
     person: model.person,
     description: model.description.trim(),
-    date: fromDateInputValue(model.date),
+    date: keepDate ? originalDate : fromDateInputValue(model.date),
   };
 }

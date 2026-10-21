@@ -16,13 +16,14 @@ import { FIRESTORE_COLLECTIONS, FIRESTORE_FIELDS } from '../constants/firestore.
 import { FIRESTORE } from '../firebase/firebase.tokens';
 import { liveDoc, liveQuery } from '../firebase/live-data';
 import { ExpenseFilter } from '../models/expense-filter.model';
-import { Expense, ExpenseDraft, PendingWrite } from '../models/expense.model';
+import { Expense, ExpenseConversion, ExpenseDraft, PendingWrite } from '../models/expense.model';
 import { LiveDocState, LiveQueryState } from '../models/live-data.model';
 import { DateRange } from '../models/statistics.model';
 import { AuthService } from '../services/auth.service';
 import { ExchangeRatesService } from '../services/exchange-rates.service';
-import { convertToAllCurrencies } from '../utils/currency.utils';
-import { getPeriodRange } from '../utils/date.utils';
+import { TodayService } from '../services/today.service';
+import { convertToAllCurrencies, hasAllAmounts } from '../utils/currency.utils';
+import { fromDateInputValue, getPeriodRange, toDateInputValue } from '../utils/date.utils';
 import { mapExpense, toExpenseDocument, toExpenseDocumentUpdate } from './mappers';
 
 const dateRangeConstraints = ({ from, to }: DateRange): QueryConstraint[] => [
@@ -35,6 +36,7 @@ export class ExpensesRepository {
   private readonly db = inject(FIRESTORE);
   private readonly auth = inject(AuthService);
   private readonly exchangeRates = inject(ExchangeRatesService);
+  private readonly today = inject(TodayService).date;
   private readonly expensesRef = collection(this.db, FIRESTORE_COLLECTIONS.expenses);
 
   /**
@@ -58,7 +60,8 @@ export class ExpensesRepository {
         constraints.push(where(FIRESTORE_FIELDS.categoryId, '==', categoryId));
       }
       if (period) {
-        constraints.push(...dateRangeConstraints(getPeriodRange(period)));
+        // Reading `today` re-runs the query after midnight, so "this week" never gets stuck.
+        constraints.push(...dateRangeConstraints(getPeriodRange(period, fromDateInputValue(this.today()))));
       }
       return query(this.expensesRef, ...constraints, orderBy(FIRESTORE_FIELDS.date, 'desc'), limit(count()));
     }, mapExpense);
@@ -93,26 +96,37 @@ export class ExpensesRepository {
       throw new Error('Cannot add an expense without a signed-in user');
     }
 
-    const eurRates = await this.exchangeRates.getEurRates();
     const ref = doc(this.expensesRef);
-    const data = toExpenseDocument(draft, convertToAllCurrencies(draft.amount, draft.currency, eurRates), userId);
+    const data = toExpenseDocument(draft, await this.convert(draft), userId);
 
     return { id: ref.id, synced: setDoc(ref, data) };
   }
 
-  /** Same sync semantics as {@link add}. Conversions are kept unless the amount or currency changed. */
+  /**
+   * Same sync semantics as {@link add}. Conversions are recomputed when the amount, currency or day
+   * changed, and also to repair incomplete or approximate ones; otherwise they stay as they were.
+   */
   async update(expense: Expense, draft: ExpenseDraft): Promise<PendingWrite> {
-    const amountChanged = draft.amount !== expense.amount || draft.currency !== expense.currency;
-    const amounts = amountChanged
-      ? convertToAllCurrencies(draft.amount, draft.currency, await this.exchangeRates.getEurRates())
-      : expense.amounts;
+    const needsConversion =
+      draft.amount !== expense.amount ||
+      draft.currency !== expense.currency ||
+      toDateInputValue(draft.date) !== toDateInputValue(expense.date) ||
+      expense.approximateAmounts ||
+      !hasAllAmounts(expense.amounts);
+    const conversion = needsConversion ? await this.convert(draft) : undefined;
     const ref = doc(this.expensesRef, expense.id);
 
-    return { id: ref.id, synced: updateDoc(ref, toExpenseDocumentUpdate(draft, amounts)) };
+    return { id: ref.id, synced: updateDoc(ref, toExpenseDocumentUpdate(draft, conversion)) };
   }
 
   /** Same sync semantics as {@link add}. */
   remove(id: string): PendingWrite {
     return { id, synced: deleteDoc(doc(this.expensesRef, id)) };
+  }
+
+  /** Uses the rates of the expense's own day. */
+  private async convert(draft: ExpenseDraft): Promise<ExpenseConversion> {
+    const { rates, date } = await this.exchangeRates.getRates(toDateInputValue(draft.date));
+    return { amounts: convertToAllCurrencies(draft.amount, draft.currency, rates), ratesDate: date };
   }
 }

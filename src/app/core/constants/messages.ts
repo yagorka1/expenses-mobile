@@ -26,6 +26,7 @@ export const TOAST_MESSAGES = {
   expenseQueued: 'Нет сети — трата сохранена на телефоне и отправится позже',
   expenseSyncFailed: 'Не удалось сохранить трату на сервере',
   expenseSaveFailed: 'Не удалось сохранить трату',
+  expenseCategoryMissing: 'Категории или подкатегории больше нет — выберите другую',
   expenseUpdated: 'Изменения сохранены',
   expenseUpdateQueued: 'Нет сети — изменения сохранены на телефоне и отправятся позже',
   expenseDeleted: 'Трата удалена',

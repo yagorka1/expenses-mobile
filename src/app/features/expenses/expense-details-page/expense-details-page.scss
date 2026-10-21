@@ -36,6 +36,12 @@
   color: var(--color-text-muted);
 }
 
+.details__note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
 .details__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

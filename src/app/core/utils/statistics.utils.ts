@@ -1,8 +1,9 @@
 import { CurrencyCode } from '../constants/expense.constants';
+import { EurRates } from '../models/exchange-rates.model';
 import { Expense } from '../models/expense.model';
 import { BreakdownItem, DayGroup, ExpenseStatistics } from '../models/statistics.model';
 import { toDateInputValue } from './date.utils';
-import { roundMoney } from './currency.utils';
+import { convertAmount, roundMoney } from './currency.utils';
 
 interface ExpenseGroup {
   key: string;
@@ -25,47 +26,68 @@ function groupExpenses(
   return [...groups.values()];
 }
 
-const sumIn = (expenses: readonly Expense[], currency: CurrencyCode): number =>
-  roundMoney(expenses.reduce((sum, expense) => sum + (expense.amounts[currency] ?? 0), 0));
+/**
+ * The stored conversion when there is one. Migrated expenses may lack it: then the original amount
+ * is used if it's already in `currency`, otherwise it's converted with `fallbackRates`.
+ */
+function amountIn(expense: Expense, currency: CurrencyCode, fallbackRates: EurRates | null): number {
+  const stored = expense.amounts[currency];
+  if (stored !== undefined) {
+    return stored;
+  }
+  if (expense.currency === currency) {
+    return expense.amount;
+  }
+  return fallbackRates ? convertAmount(expense.amount, expense.currency, currency, fallbackRates) : 0;
+}
 
+type SumIn = (expenses: readonly Expense[]) => number;
+
+/** `total` is what shares are relative to: the period total, or the parent item's amount. */
 function toBreakdown(
   groups: ExpenseGroup[],
-  currency: CurrencyCode,
+  sumIn: SumIn,
   total: number,
-  getChildren: (group: ExpenseGroup) => BreakdownItem[] = () => [],
+  getChildren: (group: ExpenseGroup, amount: number) => BreakdownItem[] = () => [],
 ): BreakdownItem[] {
   return groups
     .map((group) => {
-      const amount = sumIn(group.expenses, currency);
+      const amount = sumIn(group.expenses);
       return {
         key: group.key,
         label: group.label,
         amount,
         share: total > 0 ? amount / total : 0,
-        children: getChildren(group),
+        children: getChildren(group, amount),
       };
     })
     .sort((a, b) => b.amount - a.amount);
 }
 
-export function buildStatistics(expenses: readonly Expense[], currency: CurrencyCode): ExpenseStatistics {
-  const total = sumIn(expenses, currency);
+export function buildStatistics(
+  expenses: readonly Expense[],
+  currency: CurrencyCode,
+  fallbackRates: EurRates | null,
+): ExpenseStatistics {
+  const sumIn: SumIn = (group) =>
+    roundMoney(group.reduce((sum, expense) => sum + amountIn(expense, currency, fallbackRates), 0));
+  const total = sumIn(expenses);
 
   const byCategory = toBreakdown(
     groupExpenses(expenses, (e) => e.categoryId || e.categoryName, (e) => e.categoryName),
-    currency,
+    sumIn,
     total,
-    (category) =>
+    (category, categoryAmount) =>
       toBreakdown(
         groupExpenses(category.expenses, (e) => e.subcategoryId || e.subcategoryName, (e) => e.subcategoryName),
-        currency,
-        total,
+        sumIn,
+        categoryAmount,
       ),
   );
 
   const byPerson = toBreakdown(
     groupExpenses(expenses, (e) => e.person, (e) => e.person),
-    currency,
+    sumIn,
     total,
   );
 
