@@ -1,0 +1,18 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.summary__range,
+.summary__count {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.summary__total {
+  font-size: 34px;
+  font-weight: 700;
+}

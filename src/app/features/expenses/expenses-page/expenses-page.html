@@ -1,0 +1,30 @@
+<div class="page">
+  <h1 class="page__title">Последние траты</h1>
+
+  @if (errorMessage(); as error) {
+    <app-state-message type="error" [message]="error" />
+  }
+
+  @for (day of days(); track day.key) {
+    <section class="section">
+      <h2 class="section__label">{{ day.date | date: dayFormat }}</h2>
+      <ul class="card expenses__list">
+        @for (expense of day.expenses; track expense.id) {
+          <li><app-expense-list-item [expense]="expense" /></li>
+        }
+      </ul>
+    </section>
+  } @empty {
+    @if (state().loading) {
+      <app-state-message type="loading" />
+    } @else if (!errorMessage()) {
+      <app-state-message type="empty" [message]="emptyMessage" />
+    }
+  }
+
+  @if (canLoadMore()) {
+    <button class="button button--ghost button--block" type="button" [disabled]="state().loading" (click)="loadMore()">
+      Показать ещё
+    </button>
+  }
+</div>

@@ -1,0 +1,36 @@
+<ul class="breakdown">
+  @for (item of items(); track item.key) {
+    @let expandable = item.children.length > 0;
+    <li class="breakdown__item">
+      <button
+        type="button"
+        class="breakdown__row"
+        [disabled]="!expandable"
+        [attr.aria-expanded]="expandable ? isExpanded(item.key) : null"
+        (click)="toggle(item)"
+      >
+        <span class="breakdown__header">
+          <span class="breakdown__label">{{ item.label }}</span>
+          <span class="breakdown__amount">{{ item.amount | money: currency() }}</span>
+        </span>
+        <span class="breakdown__bar" aria-hidden="true">
+          <span class="breakdown__fill" [style.width.%]="item.share * 100"></span>
+        </span>
+        <span class="breakdown__share">{{ item.share | percent: percentFormat }}</span>
+      </button>
+
+      @if (isExpanded(item.key)) {
+        <ul class="breakdown breakdown--nested">
+          @for (child of item.children; track child.key) {
+            <li class="breakdown__child">
+              <span class="breakdown__label">{{ child.label }}</span>
+              <span class="breakdown__amount">
+                {{ child.amount | money: currency() }} · {{ child.share | percent: percentFormat }}
+              </span>
+            </li>
+          }
+        </ul>
+      }
+    </li>
+  }
+</ul>

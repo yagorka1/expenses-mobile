@@ -1,0 +1,53 @@
+<div class="page">
+  <button type="button" class="details__back" (click)="back()">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+    Назад
+  </button>
+
+  @if (state().data; as expense) {
+    <section class="card details__hero">
+      <span class="details__amount">{{ expense.amount | money: expense.currency }}</span>
+      <span class="details__subtitle">{{ expense.subcategoryName }} · {{ expense.categoryName }}</span>
+      @if (expense.isPending) {
+        <span class="badge badge--warning">Ожидает отправки</span>
+      }
+    </section>
+
+    <dl class="card details__list">
+      <div class="details__row">
+        <dt>Дата</dt>
+        <dd>{{ expense.date | date: dateFormat }}</dd>
+      </div>
+      <div class="details__row">
+        <dt>Кто потратил</dt>
+        <dd>{{ expense.person }}</dd>
+      </div>
+      @if (expense.description) {
+        <div class="details__row">
+          <dt>Описание</dt>
+          <dd>{{ expense.description }}</dd>
+        </div>
+      }
+    </dl>
+
+    @if (conversions().length) {
+      <section class="section">
+        <h2 class="section__label">В других валютах</h2>
+        <dl class="card details__list">
+          @for (conversion of conversions(); track conversion.code) {
+            <div class="details__row">
+              <dt>{{ conversion.code }}</dt>
+              <dd>{{ conversion.amount | money: conversion.code }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+    }
+  } @else if (errorMessage(); as error) {
+    <app-state-message type="error" [message]="error" />
+  } @else if (state().loading) {
+    <app-state-message type="loading" />
+  } @else {
+    <app-state-message type="empty" [message]="notFoundMessage" />
+  }
+</div>
