@@ -64,6 +64,6 @@ export const EMPTY_STATE_MESSAGES = {
   expenses: 'Трат пока нет',
   filteredExpenses: 'Нет трат с такими фильтрами',
   statistics: 'За этот период трат нет',
-  categories: 'Категорий нет — добавьте их в админке и перенесите командой npm run migrate в my-expenses-bot',
+  categories: 'Категорий нет — добавьте их в админке',
   expenseNotFound: 'Трата не найдена',
 } as const;
