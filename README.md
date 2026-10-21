@@ -1,59 +1,60 @@
-# ExpensesMobile
+# expenses-mobile
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.3.
+PWA для учёта трат (Android и iOS через «Добавить на главный экран»). Работает напрямую с Firebase:
+Firestore (данные, офлайн-кэш), Firebase Auth (вход по email и через Google), Firebase Hosting.
 
-## Development server
+Angular 22: standalone-компоненты, signals, Signal Forms, zoneless.
 
-To start a local development server, run:
+## Возможности
 
-```bash
-ng serve
-```
+- Ввод траты на одном экране; последние валюта и человек запоминаются.
+- Последние траты по дням и экран деталей с суммами во всех валютах.
+- Статистика за неделю, месяц, прошлый месяц и год в EUR или RSD: по людям и по категориям с подкатегориями.
+- Офлайн: траты сохраняются на телефоне и отправляются сами, когда появляется сеть.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Настройка Firebase (один раз)
 
-## Code scaffolding
+1. Создать проект на <https://console.firebase.google.com>.
+2. **Firestore Database** → Create database (production mode, регион `eur3`).
+3. **Authentication** → Sign-in method → включить **Email/Password** и **Google**.
+   Во вкладке Users добавить аккаунты с паролем (для входа по email).
+   Во вкладке Settings → User actions можно выключить *Enable create (sign-up)*.
+4. **Project settings → Your apps → Web app** → скопировать конфиг в `src/environments/environment.ts`.
+5. В `.firebaserc` заменить `REPLACE_ME` на id проекта.
+6. Перенести данные из MongoDB и выдать доступ — см. README в `my-expenses-bot`
+   (`npm run migrate`, затем `npm run add-member -- <email>` для каждого человека).
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+## Деплой
 
 ```bash
-ng build
+npm install -g firebase-tools
+firebase login
+npm run build
+firebase deploy            # хостинг + правила Firestore
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+После первого деплоя:
 
-## Running unit tests
+- в `environment.ts` поставить `authDomain: '<project-id>.web.app'` и задеплоить ещё раз —
+  иначе вход через Google в установленной PWA на iOS может не работать;
+- в Authentication → Settings → Authorized domains должен быть `<project-id>.web.app`.
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Установка на телефон
+
+- **iPhone**: открыть `https://<project-id>.web.app` в Safari → «Поделиться» → «На экран Домой».
+- **Android**: открыть в Chrome → меню → «Установить приложение».
+
+## Доступ
+
+`firestore.rules` пускают только пользователей, чей uid есть в коллекции `members`.
+Одного входа недостаточно: с публичным конфигом кто угодно может создать аккаунт.
+
+## Разработка
 
 ```bash
-ng test
+npm start        # http://localhost:4200 (service worker отключён в dev)
+npm run build    # dist/expenses-mobile/browser
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Справочники (люди, валюты, курсы RSD/BYN) лежат в `src/app/core/constants`.
+Курсы RSD и BYN фиксированные (ECB их не публикует), остальные берутся с frankfurter.app.
