@@ -55,14 +55,14 @@ export class ExpensesRepository {
    * Awaiting `synced` is optional: with offline persistence it only settles when the server confirms.
    */
   async add(draft: ExpenseDraft): Promise<PendingWrite> {
-    const user = this.auth.user();
-    if (!user) {
+    const userId = this.auth.userId;
+    if (!userId) {
       throw new Error('Cannot add an expense without a signed-in user');
     }
 
     const eurRates = await this.exchangeRates.getEurRates();
     const ref = doc(this.expensesRef);
-    const data = toExpenseDocument(draft, convertToAllCurrencies(draft.amount, draft.currency, eurRates), user.uid);
+    const data = toExpenseDocument(draft, convertToAllCurrencies(draft.amount, draft.currency, eurRates), userId);
 
     return { id: ref.id, synced: setDoc(ref, data) };
   }

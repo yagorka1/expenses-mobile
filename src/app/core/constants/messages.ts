@@ -16,9 +16,8 @@ export const VALIDATION_MESSAGES = {
   dateRequired: 'Выберите дату',
   personRequired: 'Выберите, кто потратил',
   descriptionTooLong: 'Слишком длинное описание',
-  emailRequired: 'Введите email',
-  emailFormat: 'Некорректный email',
   passwordRequired: 'Введите пароль',
+  passwordTooShort: 'Пароль не короче 6 символов',
 } as const;
 
 export const TOAST_MESSAGES = {
@@ -29,18 +28,13 @@ export const TOAST_MESSAGES = {
 } as const;
 
 export const AUTH_ERROR_MESSAGES: Readonly<Record<string, string>> = {
-  'auth/invalid-credential': 'Неверный email или пароль',
-  'auth/invalid-email': 'Некорректный email',
-  'auth/user-disabled': 'Аккаунт отключён',
+  'auth/invalid-credential': 'Неверный пароль',
+  'auth/wrong-password': 'Неверный пароль',
+  'auth/user-not-found': 'Семейный аккаунт не создан в Firebase',
+  'auth/user-disabled': 'Доступ отключён',
   'auth/too-many-requests': 'Слишком много попыток, попробуйте позже',
   'auth/network-request-failed': 'Нет соединения с интернетом',
-  'auth/popup-blocked': 'Браузер заблокировал окно входа, разрешите всплывающие окна',
-  'auth/account-exists-with-different-credential': 'Этот email уже используется для входа по паролю',
-  'auth/unauthorized-domain': 'Домен не добавлен в Authorized domains в настройках Firebase',
 };
-
-/** User-initiated cancellations: no message is shown. */
-export const SILENT_AUTH_ERROR_CODES: readonly string[] = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request'];
 export const AUTH_ERROR_DEFAULT_MESSAGE = 'Не удалось войти';
 
 export const DATA_ERROR_MESSAGES: Readonly<Record<string, string>> = {
