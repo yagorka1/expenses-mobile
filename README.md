@@ -51,5 +51,5 @@ npm start        # http://localhost:4200 (service worker отключён в dev
 npm run build    # dist/expenses-mobile/browser
 ```
 
-Справочники (люди, валюты, курсы RSD/BYN) лежат в `src/app/core/constants`.
-Курсы RSD и BYN фиксированные (ECB их не публикует), остальные берутся с frankfurter.app.
+Справочники (люди, валюты, запасные курсы) лежат в `src/app/core/constants`.
+Курсы всех валют берутся из [fawazahmed0/exchange-api](https://github.com/fawazahmed0/exchange-api) (jsDelivr + зеркало на pages.dev) и кэшируются на 12 часов.

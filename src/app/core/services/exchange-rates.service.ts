@@ -5,14 +5,12 @@ import {
   BASE_CURRENCY,
   EXCHANGE_RATES_TIMEOUT_MS,
   EXCHANGE_RATES_TTL_MS,
-  EXCHANGE_RATES_URL,
+  EXCHANGE_RATES_URLS,
   FALLBACK_EUR_RATES,
-  FIXED_EUR_RATES,
-  MARKET_CURRENCIES,
 } from '../constants/exchange-rates.constants';
 import { CURRENCIES } from '../constants/expense.constants';
 import { STORAGE_KEYS } from '../constants/storage-keys';
-import { CachedExchangeRates, EurRates, FrankfurterResponse } from '../models/exchange-rates.model';
+import { CachedExchangeRates, CurrencyApiResponse, EurRates } from '../models/exchange-rates.model';
 import { NetworkStatusService } from './network-status.service';
 import { StorageService } from './storage.service';
 
@@ -34,27 +32,26 @@ export class ExchangeRatesService {
       return fallback;
     }
 
-    try {
-      const response = await firstValueFrom(
-        this.http
-          .get<FrankfurterResponse>(EXCHANGE_RATES_URL, {
-            params: { base: BASE_CURRENCY, symbols: MARKET_CURRENCIES.join(',') },
-          })
-          .pipe(timeout(EXCHANGE_RATES_TIMEOUT_MS)),
-      );
-      const rates = this.toEurRates(response, fallback);
-      this.storage.set<CachedExchangeRates>(STORAGE_KEYS.exchangeRates, { rates, fetchedAt: Date.now() });
-      return rates;
-    } catch {
-      return fallback;
+    for (const url of EXCHANGE_RATES_URLS) {
+      try {
+        const response = await firstValueFrom(
+          this.http.get<CurrencyApiResponse>(url).pipe(timeout(EXCHANGE_RATES_TIMEOUT_MS)),
+        );
+        const rates = this.toEurRates(response, fallback);
+        this.storage.set<CachedExchangeRates>(STORAGE_KEYS.exchangeRates, { rates, fetchedAt: Date.now() });
+        return rates;
+      } catch {
+        // Try the next mirror.
+      }
     }
+    return fallback;
   }
 
-  private toEurRates(response: FrankfurterResponse, fallback: EurRates): EurRates {
+  private toEurRates(response: CurrencyApiResponse, fallback: EurRates): EurRates {
     return Object.fromEntries(
       CURRENCIES.map((code) => [
         code,
-        code === BASE_CURRENCY ? 1 : (FIXED_EUR_RATES[code] ?? response.rates[code] ?? fallback[code]),
+        code === BASE_CURRENCY ? 1 : (response.eur[code.toLowerCase()] ?? fallback[code]),
       ]),
     ) as EurRates;
   }
