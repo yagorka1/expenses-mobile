@@ -16,7 +16,7 @@
         <span class="breakdown__bar" aria-hidden="true">
           <span class="breakdown__fill" [style.width.%]="item.share * 100"></span>
         </span>
-        <span class="breakdown__share">{{ item.share | percent: percentFormat }}</span>
+        <span class="breakdown__share">{{ item.percent / 100 | percent: percentFormat }}</span>
       </button>
 
       @if (isExpanded(item.key)) {
@@ -25,7 +25,7 @@
             <li class="breakdown__child">
               <span class="breakdown__label">{{ child.label }}</span>
               <span class="breakdown__amount">
-                {{ child.amount | money: currency() }} · {{ child.share | percent: percentFormat }}
+                {{ child.amount | money: currency() }} · {{ child.percent / 100 | percent: percentFormat }}
               </span>
             </li>
           }

@@ -7,6 +7,7 @@ import { CategoriesRepository } from '../../../core/data/categories.repository';
 import { ExpensesRepository } from '../../../core/data/expenses.repository';
 import { Expense, ExpenseDraft } from '../../../core/models/expense.model';
 import { SelectOption } from '../../../core/models/select-option.model';
+import { ExchangeRatesService } from '../../../core/services/exchange-rates.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { TodayService } from '../../../core/services/today.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -32,6 +33,7 @@ export class ExpenseFormPage {
   private readonly categoriesRepository = inject(CategoriesRepository);
   private readonly expensesRepository = inject(ExpensesRepository);
   private readonly preferences = inject(UserPreferencesService);
+  private readonly exchangeRates = inject(ExchangeRatesService);
   private readonly network = inject(NetworkStatusService);
   private readonly toast = inject(ToastService);
   private readonly location = inject(Location);
@@ -49,6 +51,7 @@ export class ExpenseFormPage {
   protected readonly expenseForm = form(this.model, expenseFormSchema, {
     submission: { action: () => this.save() },
   });
+  private readonly selectedDay = computed(() => this.model().date);
 
   protected readonly emptyCategoriesMessage = EMPTY_STATE_MESSAGES.categories;
   protected readonly notFoundMessage = EMPTY_STATE_MESSAGES.expenseNotFound;
@@ -101,6 +104,10 @@ export class ExpenseFormPage {
         shownToday = today;
       });
     });
+
+    // Saving doesn't wait for the network: with the day's rates loaded in advance the amounts are
+    // exact right away. Also re-runs when the network comes back.
+    effect(() => this.exchangeRates.prefetch(this.selectedDay()));
   }
 
   protected onCategoryChange(): void {
@@ -132,9 +139,9 @@ export class ExpenseFormPage {
     const draft = toExpenseDraft(model, category, subcategory, original?.date);
     try {
       if (original) {
-        await this.saveChanges(original, draft);
+        this.saveChanges(original, draft);
       } else {
-        await this.saveNew(draft);
+        this.saveNew(draft);
       }
     } catch {
       this.toast.error(TOAST_MESSAGES.expenseSaveFailed);
@@ -142,8 +149,8 @@ export class ExpenseFormPage {
     return undefined;
   }
 
-  private async saveNew(draft: ExpenseDraft): Promise<void> {
-    const write = await this.expensesRepository.add(draft);
+  private saveNew(draft: ExpenseDraft): void {
+    const write = this.expensesRepository.add(draft);
     write.synced.catch(() => this.toast.error(TOAST_MESSAGES.expenseSyncFailed));
 
     this.toast.success(this.network.online() ? TOAST_MESSAGES.expenseSaved : TOAST_MESSAGES.expenseQueued);
@@ -152,8 +159,8 @@ export class ExpenseFormPage {
     this.resetForNextExpense();
   }
 
-  private async saveChanges(original: Expense, draft: ExpenseDraft): Promise<void> {
-    const write = await this.expensesRepository.update(original, draft);
+  private saveChanges(original: Expense, draft: ExpenseDraft): void {
+    const write = this.expensesRepository.update(original, draft);
     write.synced.catch(() => this.toast.error(TOAST_MESSAGES.expenseSyncFailed));
 
     this.toast.success(this.network.online() ? TOAST_MESSAGES.expenseUpdated : TOAST_MESSAGES.expenseUpdateQueued);

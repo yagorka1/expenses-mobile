@@ -65,9 +65,11 @@ export function mapExpense(snapshot: DocumentSnapshot): Expense {
     person: asString(data['person']),
     description: asString(data['description']),
     date: asDate(data['date']),
+    // Estimated locally until the server confirms a new expense, so it sorts as the latest one.
+    createdAt: asDate(data['createdAt']),
     amounts: asAmounts(data['amounts']),
     ratesDate: typeof data['ratesDate'] === 'string' ? data['ratesDate'] : null,
-    // Only the app writes `ratesDate`, and it writes `null` only for the fallback rates.
+    // Only the app writes `ratesDate`, and it writes `null` only when the exact rates weren't loaded.
     approximateAmounts: data['ratesDate'] === null,
     isPending: snapshot.metadata.hasPendingWrites,
   };

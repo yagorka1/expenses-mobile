@@ -45,8 +45,11 @@ export class StatisticsPage {
   /** `YYYY-MM-DD` bounds of the custom period; it starts as the current month up to today. */
   protected readonly customFrom = signal(toDateInputValue(getPeriodRange('month').from));
   protected readonly customTo = signal(this.today());
-  /** For expenses without a stored conversion into the selected currency (migrated ones). */
-  private readonly fallbackRates = signal<EurRates | null>(null);
+  /**
+   * For expenses without a stored conversion into the selected currency (migrated ones). Known right
+   * away, so totals never jump; replaced by fresh rates once they load.
+   */
+  private readonly fallbackRates = signal<EurRates>(this.exchangeRates.peek(this.today()).rates);
 
   protected readonly isCustomPeriod = computed(() => this.period() === CUSTOM_STATISTICS_PERIOD);
   protected readonly range = computed(() => {
@@ -65,7 +68,11 @@ export class StatisticsPage {
   });
 
   constructor() {
-    this.exchangeRates.getRates().then(({ rates }) => this.fallbackRates.set(rates));
+    this.exchangeRates.exact(this.today()).then((exact) => {
+      if (exact) {
+        this.fallbackRates.set(exact.rates);
+      }
+    });
 
     effect(() => {
       this.preferences.statisticsCurrency = this.currency();

@@ -25,6 +25,7 @@
     class="date-field__native"
     type="date"
     aria-label="Выбрать дату"
+    [min]="minDate"
     [max]="today()"
     [value]="value()"
     [disabled]="disabled()"

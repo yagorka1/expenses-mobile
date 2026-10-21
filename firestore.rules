@@ -35,16 +35,23 @@ service cloud.firestore {
     }
 
     function isValidConvertedAmount(amounts, currency) {
-      return amounts.get(currency, 0) is number && amounts.get(currency, 0) >= 0;
+      return amounts[currency] is number && amounts[currency] >= 0;
     }
 
+    // A conversion into every supported currency: statistics rely on it.
     function isValidAmounts(amounts) {
       return amounts.keys().hasOnly(currencies())
+        && amounts.keys().hasAll(currencies())
         && isValidConvertedAmount(amounts, 'RSD')
         && isValidConvertedAmount(amounts, 'EUR')
         && isValidConvertedAmount(amounts, 'USD')
         && isValidConvertedAmount(amounts, 'BYN')
         && isValidConvertedAmount(amounts, 'PLN');
+    }
+
+    // The lower bound is MIN_EXPENSE_DATE in expense.constants.ts; the upper one leaves room for time zones.
+    function isValidDate(date) {
+      return date >= timestamp.date(2000, 1, 1) && date <= request.time + duration.value(2, 'd');
     }
 
     function isValidExpense(data) {
@@ -62,8 +69,10 @@ service cloud.firestore {
         && data.amounts is map
         && (!changes('currency') || data.currency in currencies())
         && (!changes('person') || data.person in persons())
+        && (!changes('date') || isValidDate(data.date))
         && (!changes('amounts') || isValidAmounts(data.amounts))
-        && (!changes('ratesDate') || data.get('ratesDate', null) == null || data.ratesDate is string);
+        && (!changes('ratesDate') || data.get('ratesDate', null) == null
+          || (data.ratesDate is string && data.ratesDate.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')));
     }
 
     match /expenses/{expenseId} {

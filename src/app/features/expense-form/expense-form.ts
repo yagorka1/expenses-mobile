@@ -1,5 +1,10 @@
 import { maxLength, pattern, required, schema, validate } from '@angular/forms/signals';
-import { AMOUNT_PATTERN, CurrencyCode, DESCRIPTION_MAX_LENGTH } from '../../core/constants/expense.constants';
+import {
+  AMOUNT_PATTERN,
+  CurrencyCode,
+  DESCRIPTION_MAX_LENGTH,
+  MIN_EXPENSE_DATE,
+} from '../../core/constants/expense.constants';
 import { VALIDATION_MESSAGES } from '../../core/constants/messages';
 import { Category, Subcategory } from '../../core/models/category.model';
 import { Expense, ExpenseDraft } from '../../core/models/expense.model';
@@ -28,6 +33,14 @@ export const expenseFormSchema = schema<ExpenseFormModel>((path) => {
   required(path.categoryId, { message: VALIDATION_MESSAGES.categoryRequired });
   required(path.subcategoryId, { message: VALIDATION_MESSAGES.subcategoryRequired });
   required(path.date, { message: VALIDATION_MESSAGES.dateRequired });
+  // The picker limits the dates, but a typed date or a wrong clock can still get past it.
+  validate(path.date, ({ value }) => {
+    const day = value();
+    if (day > toDateInputValue(new Date())) {
+      return { kind: 'future', message: VALIDATION_MESSAGES.dateInFuture };
+    }
+    return day && day < MIN_EXPENSE_DATE ? { kind: 'tooOld', message: VALIDATION_MESSAGES.dateTooOld } : undefined;
+  });
   required(path.person, { message: VALIDATION_MESSAGES.personRequired });
   maxLength(path.description, DESCRIPTION_MAX_LENGTH, { message: VALIDATION_MESSAGES.descriptionTooLong });
 });

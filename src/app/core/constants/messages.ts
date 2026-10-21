@@ -15,6 +15,8 @@ export const VALIDATION_MESSAGES = {
   categoryRequired: 'Выберите категорию',
   subcategoryRequired: 'Выберите подкатегорию',
   dateRequired: 'Выберите дату',
+  dateInFuture: 'Дата не может быть в будущем',
+  dateTooOld: 'Проверьте год',
   personRequired: 'Выберите, кто потратил',
   descriptionTooLong: 'Слишком длинное описание',
   passwordRequired: 'Введите пароль',
@@ -62,6 +64,6 @@ export const EMPTY_STATE_MESSAGES = {
   expenses: 'Трат пока нет',
   filteredExpenses: 'Нет трат с такими фильтрами',
   statistics: 'За этот период трат нет',
-  categories: 'Категорий нет — добавьте их в админке',
+  categories: 'Категорий нет — добавьте их в админке и перенесите командой npm run migrate в my-expenses-bot',
   expenseNotFound: 'Трата не найдена',
 } as const;

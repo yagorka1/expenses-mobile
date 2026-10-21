@@ -51,12 +51,19 @@ to build after deploying.
 ```bash
 npm start        # http://localhost:4200 (the service worker is disabled in dev)
 npm run build    # dist/expenses-mobile/browser
+npm test         # unit tests (Vitest)
 ```
 
 Reference data (people, currencies, fallback rates) lives in `src/app/core/constants`.
 
 Exchange rates come from [fawazahmed0/exchange-api](https://github.com/fawazahmed0/exchange-api) (jsDelivr plus the pages.dev mirror).
-Each expense is converted with the rates of its own date (the API has them since March 2024; older dates use the latest rates).
-The latest rates are cached for 12 hours, past days' rates indefinitely. The day of the rates is stored in the `ratesDate` field;
-`null` there means there was neither network nor cache and the built-in fallback rates were used, so the expense
-is reconverted the next time it's edited.
+Each expense is converted with the rates of its own date (the API has them since 2 March 2024; today and older dates
+use the latest rates). The latest rates are cached for 12 hours, past days' rates indefinitely, and the form loads
+the rates of the picked day in advance.
+
+Saving never waits for the network. If the day's rates aren't loaded yet, the amounts are computed with stand-in rates
+and `ratesDate` is `null`; such expenses are re-converted automatically as soon as the rates can be loaded (on start,
+when the network comes back and right after saving). Otherwise `ratesDate` holds the day of the rates.
+
+App expenses are stored at noon of their day, so a time zone change never moves them to another day; the expenses
+of one day are listed by `createdAt`, the last added first.

@@ -10,4 +10,5 @@ export const FIRESTORE_FIELDS = {
   person: 'person',
   categoryId: 'categoryId',
   subcategoryId: 'subcategoryId',
+  ratesDate: 'ratesDate',
 } as const;

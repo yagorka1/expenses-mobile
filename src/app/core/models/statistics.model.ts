@@ -15,6 +15,8 @@ export interface BreakdownItem {
   amount: number;
   /** 0..1: fraction of the period total, or of the parent category for subcategories. */
   share: number;
+  /** `share` as whole percents; the percents of one list add up to 100. */
+  percent: number;
   children: BreakdownItem[];
 }
 

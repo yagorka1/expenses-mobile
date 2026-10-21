@@ -42,7 +42,7 @@
           }
         </dl>
         @if (expense.approximateAmounts) {
-          <p class="details__note">Примерный курс: при сохранении не было сети. Пересчитается при следующем изменении траты.</p>
+          <p class="details__note">Примерный курс: точный курс на этот день ещё не загружен. Суммы пересчитаются сами, когда будет интернет.</p>
         } @else if (ratesDate(); as date) {
           <p class="details__note">По курсу на {{ date | date: dateFormat }}</p>
         }

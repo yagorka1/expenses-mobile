@@ -13,22 +13,28 @@ export interface Expense {
   subcategoryName: string;
   person: string;
   description: string;
+  /** The day of the expense; app expenses are stored at noon (see `fromDateInputValue`). */
   date: Date;
+  /** When the expense was added: orders the expenses of one day. */
+  createdAt: Date;
   amounts: CurrencyAmounts;
   /** `YYYY-MM-DD` of the rates behind `amounts`; `null` when unknown (bot, migration) or approximate. */
   ratesDate: string | null;
-  /** `amounts` were computed with the built-in fallback rates (no network and no cached rates). */
+  /** `amounts` were computed with stand-in rates: the exact ones couldn't be loaded when saving. */
   approximateAmounts: boolean;
   /** The write exists only in the local cache and hasn't reached Firestore yet. */
   isPending: boolean;
 }
 
-export type ExpenseDraft = Omit<Expense, 'id' | 'amounts' | 'ratesDate' | 'approximateAmounts' | 'isPending'>;
+export type ExpenseDraft = Omit<
+  Expense,
+  'id' | 'createdAt' | 'amounts' | 'ratesDate' | 'approximateAmounts' | 'isPending'
+>;
 
 /** `amounts` together with the day of the rates they were computed with. */
 export interface ExpenseConversion {
   amounts: CurrencyAmounts;
-  /** `null` = the built-in fallback rates were used. */
+  /** `null` = approximate: stand-in rates were used and the exact ones are still to be applied. */
   ratesDate: string | null;
 }
 
@@ -44,7 +50,7 @@ export interface ExpenseDocument {
   description: string;
   date: Timestamp;
   amounts: CurrencyAmounts;
-  /** Written by the app only: missing in bot and migrated documents. */
+  /** Written by the app only: missing in bot and migrated documents; `null` = approximate amounts. */
   ratesDate?: string | null;
   source: ExpenseSource;
   createdBy: string;
