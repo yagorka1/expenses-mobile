@@ -26,6 +26,12 @@ const startOfDay = (date: Date): Date => new Date(date.getFullYear(), date.getMo
 const endOfDay = (date: Date): Date =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
 
+/** Whole days between two `YYYY-MM-DD` values; the order of the bounds doesn't matter. */
+export function getDateInputRange(first: string, second: string): DateRange {
+  const [from, to] = [fromDateInputValue(first), fromDateInputValue(second)].sort((a, b) => a.getTime() - b.getTime());
+  return { from: startOfDay(from), to: endOfDay(to) };
+}
+
 export function getPeriodRange(period: StatisticsPeriod, now: Date = new Date()): DateRange {
   const year = now.getFullYear();
   const month = now.getMonth();
