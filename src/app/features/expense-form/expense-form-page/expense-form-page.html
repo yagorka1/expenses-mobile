@@ -1,63 +1,80 @@
-<form class="page" [formRoot]="expenseForm">
-  <h1 class="page__title">Новая трата</h1>
-
-  <section class="card expense-form__amount">
-    <app-amount-input [field]="expenseForm.amount" [currency]="model().currency" />
-    <app-field-error [field]="expenseForm.amount" />
-    <app-chip-select class="expense-form__currencies" label="Валюта" [options]="currencyOptions" [formField]="expenseForm.currency" />
-  </section>
-
-  <section class="section">
-    <h2 class="section__label">Категория</h2>
-    @if (categoriesError(); as error) {
+@if (!formReady()) {
+  <div class="page">
+    <h1 class="page__title">Изменение траты</h1>
+    @if (editError(); as error) {
       <app-state-message type="error" [message]="error" />
-    } @else if (categoriesLoading() && !categoryOptions().length) {
+    } @else if (editLoading()) {
       <app-state-message type="loading" />
-    } @else if (!categoryOptions().length) {
-      <app-state-message type="empty" [message]="emptyCategoriesMessage" />
     } @else {
-      <app-chip-select
-        label="Категория"
-        [options]="categoryOptions()"
-        [formField]="expenseForm.categoryId"
-        (valueChange)="onCategoryChange()"
-      />
+      <app-state-message type="empty" [message]="notFoundMessage" />
     }
-    <app-field-error [field]="expenseForm.categoryId" />
-  </section>
+    <button class="button button--ghost button--block" type="button" (click)="cancel()">Назад</button>
+  </div>
+} @else {
+  <form class="page" [formRoot]="expenseForm">
+    <h1 class="page__title">{{ isEdit() ? 'Изменение траты' : 'Новая трата' }}</h1>
 
-  @if (model().categoryId) {
-    <section class="section">
-      <h2 class="section__label">Подкатегория</h2>
-      <app-chip-select label="Подкатегория" [options]="subcategoryOptions()" [formField]="expenseForm.subcategoryId" />
-      <app-field-error [field]="expenseForm.subcategoryId" />
+    <section class="card expense-form__amount">
+      <app-amount-input [field]="expenseForm.amount" [currency]="model().currency" />
+      <app-field-error [field]="expenseForm.amount" />
+      <app-chip-select class="expense-form__currencies" label="Валюта" [options]="currencyOptions" [formField]="expenseForm.currency" />
     </section>
-  }
 
-  <section class="section">
-    <h2 class="section__label">Дата</h2>
-    <app-date-field [formField]="expenseForm.date" />
-    <app-field-error [field]="expenseForm.date" />
-  </section>
+    <section class="section">
+      <h2 class="section__label">Категория</h2>
+      @if (categoriesError(); as error) {
+        <app-state-message type="error" [message]="error" />
+      } @else if (categoriesLoading() && !categoryOptions().length) {
+        <app-state-message type="loading" />
+      } @else if (!categoryOptions().length) {
+        <app-state-message type="empty" [message]="emptyCategoriesMessage" />
+      } @else {
+        <app-chip-select
+          label="Категория"
+          [options]="categoryOptions()"
+          [formField]="expenseForm.categoryId"
+          (valueChange)="onCategoryChange()"
+        />
+      }
+      <app-field-error [field]="expenseForm.categoryId" />
+    </section>
 
-  <section class="section">
-    <h2 class="section__label">Кто потратил</h2>
-    <app-chip-select label="Кто потратил" [options]="personOptions" [formField]="expenseForm.person" />
-    <app-field-error [field]="expenseForm.person" />
-  </section>
+    @if (model().categoryId) {
+      <section class="section">
+        <h2 class="section__label">Подкатегория</h2>
+        <app-chip-select label="Подкатегория" [options]="subcategoryOptions()" [formField]="expenseForm.subcategoryId" />
+        <app-field-error [field]="expenseForm.subcategoryId" />
+      </section>
+    }
 
-  <label class="section">
-    <span class="section__label">Описание</span>
-    <textarea
-      class="input"
-      rows="2"
-      placeholder="Необязательно"
-      [formField]="expenseForm.description"
-    ></textarea>
-    <app-field-error [field]="expenseForm.description" />
-  </label>
+    <section class="section">
+      <h2 class="section__label">Дата</h2>
+      <app-date-field [formField]="expenseForm.date" />
+      <app-field-error [field]="expenseForm.date" />
+    </section>
 
-  <button class="button button--block" type="submit" [disabled]="expenseForm().submitting()">
-    Сохранить
-  </button>
-</form>
+    <section class="section">
+      <h2 class="section__label">Кто потратил</h2>
+      <app-chip-select label="Кто потратил" [options]="personOptions" [formField]="expenseForm.person" />
+      <app-field-error [field]="expenseForm.person" />
+    </section>
+
+    <label class="section">
+      <span class="section__label">Описание</span>
+      <textarea
+        class="input"
+        rows="2"
+        placeholder="Необязательно"
+        [formField]="expenseForm.description"
+      ></textarea>
+      <app-field-error [field]="expenseForm.description" />
+    </label>
+
+    <button class="button button--block" type="submit" [disabled]="expenseForm().submitting()">
+      Сохранить
+    </button>
+    @if (isEdit()) {
+      <button class="button button--ghost button--block" type="button" (click)="cancel()">Отмена</button>
+    }
+  </form>
+}

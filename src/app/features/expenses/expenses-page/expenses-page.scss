@@ -1,3 +1,25 @@
+.expenses__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.expenses__filter-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.expenses__filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .expenses__list {
   margin: 0;
   padding: 0;

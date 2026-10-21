@@ -1,0 +1,37 @@
+.confirm-dialog {
+  width: min(100% - 2 * var(--space-4), 400px);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-l);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow);
+
+  &::backdrop {
+    background: rgb(0 0 0 / 0.45);
+  }
+}
+
+.confirm-dialog__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4) var(--space-4);
+}
+
+.confirm-dialog__title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.confirm-dialog__message {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.confirm-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
