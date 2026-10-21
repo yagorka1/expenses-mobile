@@ -8,8 +8,8 @@ export interface CachedExchangeRates {
   fetchedAt: number;
 }
 
-export interface FrankfurterResponse {
-  base: string;
+/** Rates are keyed by lowercase currency codes, e.g. `{ date, eur: { usd: 1.12, ... } }`. */
+export interface CurrencyApiResponse {
   date: string;
-  rates: Partial<Record<string, number>>;
+  eur: Partial<Record<string, number>>;
 }
