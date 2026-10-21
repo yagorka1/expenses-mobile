@@ -1,0 +1,35 @@
+<div class="login">
+  <div class="login__header">
+    <img class="login__logo" src="icons/icon-192x192.png" alt="" width="72" height="72" />
+    <h1 class="page__title">Мои траты</h1>
+    <p class="login__subtitle">Войдите, чтобы добавлять траты</p>
+  </div>
+
+  <div class="login__form card">
+    <app-google-sign-in-button [pending]="googlePending()" (pressed)="signInWithGoogle()" />
+
+    <div class="login__divider" role="separator"><span>или</span></div>
+
+    <form class="login__fields" [formRoot]="loginForm">
+      <label class="section">
+        <span class="section__label">Email</span>
+        <input class="input" type="email" autocomplete="username" inputmode="email" [formField]="loginForm.email" />
+        <app-field-error [field]="loginForm.email" />
+      </label>
+
+      <label class="section">
+        <span class="section__label">Пароль</span>
+        <input class="input" type="password" autocomplete="current-password" [formField]="loginForm.password" />
+        <app-field-error [field]="loginForm.password" />
+      </label>
+
+      <button class="button button--block" type="submit" [disabled]="loginForm().submitting()">
+        {{ loginForm().submitting() ? 'Входим…' : 'Войти' }}
+      </button>
+    </form>
+
+    @if (errorMessage(); as message) {
+      <p class="login__error" role="alert">{{ message }}</p>
+    }
+  </div>
+</div>

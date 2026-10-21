@@ -1,0 +1,15 @@
+<nav class="bottom-nav" aria-label="Разделы">
+  @for (item of items; track item.link) {
+    <a
+      class="bottom-nav__item"
+      [routerLink]="item.link"
+      routerLinkActive="bottom-nav__item--active"
+      ariaCurrentWhenActive="page"
+    >
+      <svg class="bottom-nav__icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path [attr.d]="item.icon" />
+      </svg>
+      <span>{{ item.label }}</span>
+    </a>
+  }
+</nav>

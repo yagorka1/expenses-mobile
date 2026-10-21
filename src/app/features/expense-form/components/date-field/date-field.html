@@ -1,0 +1,33 @@
+@for (option of quickOptions; track option.value) {
+  <button
+    type="button"
+    class="chip"
+    [class.chip--active]="option.value === value()"
+    [attr.aria-pressed]="option.value === value()"
+    [disabled]="disabled()"
+    (click)="select(option.value)"
+  >
+    {{ option.label }}
+  </button>
+}
+
+<label class="chip" [class.chip--active]="customDate()">
+  <svg class="date-field__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" />
+  </svg>
+  @if (customDate(); as date) {
+    {{ date | date: dateFormat }}
+  } @else {
+    Другая
+  }
+  <!-- Transparent native input on top of the chip: iOS only opens the picker on a real tap. -->
+  <input
+    class="date-field__native"
+    type="date"
+    aria-label="Выбрать дату"
+    [max]="today"
+    [value]="value()"
+    [disabled]="disabled()"
+    (change)="onPick($event)"
+  />
+</label>

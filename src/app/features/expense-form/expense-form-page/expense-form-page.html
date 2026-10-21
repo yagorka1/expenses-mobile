@@ -1,0 +1,63 @@
+<form class="page" [formRoot]="expenseForm">
+  <h1 class="page__title">Новая трата</h1>
+
+  <section class="card expense-form__amount">
+    <app-amount-input [field]="expenseForm.amount" [currency]="model().currency" />
+    <app-field-error [field]="expenseForm.amount" />
+    <app-chip-select class="expense-form__currencies" label="Валюта" [options]="currencyOptions" [formField]="expenseForm.currency" />
+  </section>
+
+  <section class="section">
+    <h2 class="section__label">Категория</h2>
+    @if (categoriesError(); as error) {
+      <app-state-message type="error" [message]="error" />
+    } @else if (categoriesLoading() && !categoryOptions().length) {
+      <app-state-message type="loading" />
+    } @else if (!categoryOptions().length) {
+      <app-state-message type="empty" [message]="emptyCategoriesMessage" />
+    } @else {
+      <app-chip-select
+        label="Категория"
+        [options]="categoryOptions()"
+        [formField]="expenseForm.categoryId"
+        (valueChange)="onCategoryChange()"
+      />
+    }
+    <app-field-error [field]="expenseForm.categoryId" />
+  </section>
+
+  @if (model().categoryId) {
+    <section class="section">
+      <h2 class="section__label">Подкатегория</h2>
+      <app-chip-select label="Подкатегория" [options]="subcategoryOptions()" [formField]="expenseForm.subcategoryId" />
+      <app-field-error [field]="expenseForm.subcategoryId" />
+    </section>
+  }
+
+  <section class="section">
+    <h2 class="section__label">Дата</h2>
+    <app-date-field [formField]="expenseForm.date" />
+    <app-field-error [field]="expenseForm.date" />
+  </section>
+
+  <section class="section">
+    <h2 class="section__label">Кто потратил</h2>
+    <app-chip-select label="Кто потратил" [options]="personOptions" [formField]="expenseForm.person" />
+    <app-field-error [field]="expenseForm.person" />
+  </section>
+
+  <label class="section">
+    <span class="section__label">Описание</span>
+    <textarea
+      class="input"
+      rows="2"
+      placeholder="Необязательно"
+      [formField]="expenseForm.description"
+    ></textarea>
+    <app-field-error [field]="expenseForm.description" />
+  </label>
+
+  <button class="button button--block" type="submit" [disabled]="expenseForm().submitting()">
+    Сохранить
+  </button>
+</form>

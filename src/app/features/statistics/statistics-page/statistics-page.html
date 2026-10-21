@@ -1,0 +1,29 @@
+<div class="page">
+  <h1 class="page__title">Статистика</h1>
+
+  <app-chip-select label="Период" [options]="periodOptions" [(value)]="period" />
+  <app-chip-select label="Валюта" [options]="currencyOptions" [(value)]="currency" />
+
+  @if (errorMessage(); as error) {
+    <app-state-message type="error" [message]="error" />
+  } @else if (state().loading && !state().data.length) {
+    <app-state-message type="loading" />
+  } @else {
+    @let stats = statistics();
+    <app-summary-card [total]="stats.total" [count]="stats.count" [currency]="currency()" [range]="range()" />
+
+    @if (stats.count) {
+      <section class="section">
+        <h2 class="section__label">Кто потратил</h2>
+        <app-breakdown-list class="card" [items]="stats.byPerson" [currency]="currency()" />
+      </section>
+
+      <section class="section">
+        <h2 class="section__label">По категориям</h2>
+        <app-breakdown-list class="card" [items]="stats.byCategory" [currency]="currency()" />
+      </section>
+    } @else {
+      <app-state-message type="empty" [message]="emptyMessage" />
+    }
+  }
+</div>

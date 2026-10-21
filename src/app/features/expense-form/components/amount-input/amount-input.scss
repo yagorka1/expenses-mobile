@@ -1,0 +1,30 @@
+:host {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.amount-input__field {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 44px;
+  font-weight: 700;
+  text-align: right;
+  outline: none;
+
+  &::placeholder {
+    color: var(--color-border);
+  }
+}
+
+.amount-input__currency {
+  flex: 0 0 auto;
+  min-width: 64px;
+  color: var(--color-text-muted);
+  font-size: 22px;
+  font-weight: 600;
+}

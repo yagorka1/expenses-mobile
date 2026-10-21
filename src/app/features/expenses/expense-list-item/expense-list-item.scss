@@ -1,0 +1,46 @@
+.expense-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  color: inherit;
+  text-decoration: none;
+}
+
+.expense-item__main,
+.expense-item__side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.expense-item__main {
+  min-width: 0;
+}
+
+.expense-item__side {
+  align-items: flex-end;
+  flex: 0 0 auto;
+}
+
+.expense-item__title {
+  font-weight: 600;
+}
+
+.expense-item__meta,
+.expense-item__description {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.expense-item__description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-item__amount {
+  font-weight: 600;
+  white-space: nowrap;
+}

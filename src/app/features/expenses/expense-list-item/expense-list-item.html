@@ -1,0 +1,16 @@
+@let item = expense();
+<a class="expense-item" [routerLink]="link()">
+  <span class="expense-item__main">
+    <span class="expense-item__title">{{ item.subcategoryName }}</span>
+    <span class="expense-item__meta">{{ item.categoryName }} · {{ item.person }}</span>
+    @if (item.description) {
+      <span class="expense-item__description">{{ item.description }}</span>
+    }
+  </span>
+  <span class="expense-item__side">
+    <span class="expense-item__amount">{{ item.amount | money: item.currency }}</span>
+    @if (item.isPending) {
+      <span class="badge badge--warning">Не отправлено</span>
+    }
+  </span>
+</a>

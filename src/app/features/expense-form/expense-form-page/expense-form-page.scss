@@ -1,0 +1,9 @@
+.expense-form__amount {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.expense-form__currencies {
+  justify-content: center;
+}
