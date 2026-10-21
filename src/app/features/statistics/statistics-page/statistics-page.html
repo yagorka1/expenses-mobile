@@ -14,7 +14,7 @@
           class="input"
           type="date"
           [min]="customFrom()"
-          [max]="today"
+          [max]="today()"
           [value]="customTo()"
           (change)="onDatePick('to', $event)"
         />

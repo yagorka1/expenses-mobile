@@ -8,9 +8,9 @@ import { ExpensesRepository } from '../../../core/data/expenses.repository';
 import { Expense, ExpenseDraft } from '../../../core/models/expense.model';
 import { SelectOption } from '../../../core/models/select-option.model';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
+import { TodayService } from '../../../core/services/today.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
-import { toDateInputValue } from '../../../core/utils/date.utils';
 import { getDataErrorMessage } from '../../../core/utils/firebase-error.utils';
 import { ChipSelect } from '../../../shared/components/chip-select/chip-select';
 import { FieldError } from '../../../shared/components/field-error/field-error';
@@ -35,6 +35,7 @@ export class ExpenseFormPage {
   private readonly network = inject(NetworkStatusService);
   private readonly toast = inject(ToastService);
   private readonly location = inject(Location);
+  private readonly today = inject(TodayService).date;
 
   /** Bound from the `:id` route param on the edit route. */
   readonly id = input<string>();
@@ -88,6 +89,18 @@ export class ExpenseFormPage {
         });
       }
     });
+
+    // The PWA may stay open overnight: a new expense still dated "today" moves on to the new day.
+    let shownToday = this.today();
+    effect(() => {
+      const today = this.today();
+      untracked(() => {
+        if (!this.isEdit() && this.model().date === shownToday) {
+          this.expenseForm.date().value.set(today);
+        }
+        shownToday = today;
+      });
+    });
   }
 
   protected onCategoryChange(): void {
@@ -105,12 +118,18 @@ export class ExpenseFormPage {
     const category = this.categoriesRepository.findCategory(model.categoryId);
     const subcategory = this.categoriesRepository.findSubcategory(model.subcategoryId);
     if (!category || !subcategory) {
-      this.toast.error(TOAST_MESSAGES.expenseSaveFailed);
+      // Deleted since the expense was created (or never set on migrated ones): ask to pick again.
+      this.toast.error(TOAST_MESSAGES.expenseCategoryMissing);
+      this.model.update((current) => ({
+        ...current,
+        categoryId: category ? current.categoryId : '',
+        subcategoryId: '',
+      }));
       return undefined;
     }
 
-    const draft = toExpenseDraft(model, category, subcategory);
     const original = this.original();
+    const draft = toExpenseDraft(model, category, subcategory, original?.date);
     try {
       if (original) {
         await this.saveChanges(original, draft);
@@ -153,7 +172,7 @@ export class ExpenseFormPage {
       currency: this.preferences.lastCurrency,
       categoryId: '',
       subcategoryId: '',
-      date: toDateInputValue(new Date()),
+      date: this.today(),
       person: this.preferences.lastPerson,
       description: '',
     };

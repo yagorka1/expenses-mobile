@@ -8,6 +8,7 @@ import { DATE_FORMATS } from '../../../core/constants/ui.constants';
 import { ExpensesRepository } from '../../../core/data/expenses.repository';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { fromDateInputValue } from '../../../core/utils/date.utils';
 import { getDataErrorMessage } from '../../../core/utils/firebase-error.utils';
 import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { StateMessage } from '../../../shared/components/state-message/state-message';
@@ -37,6 +38,10 @@ export class ExpenseDetailsPage {
   protected readonly errorMessage = computed(() => {
     const error = this.state().error;
     return error ? getDataErrorMessage(error) : null;
+  });
+  protected readonly ratesDate = computed(() => {
+    const date = this.state().data?.ratesDate;
+    return date ? fromDateInputValue(date) : null;
   });
   /** Equivalents in the other currencies, in the app's currency order. */
   protected readonly conversions = computed(() => {

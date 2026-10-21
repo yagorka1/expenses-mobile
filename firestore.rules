@@ -10,6 +10,43 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/members/$(request.auth.uid));
     }
 
+    // Keep in sync with CURRENCIES and PERSONS in src/app/core/constants/expense.constants.ts.
+    function currencies() {
+      return ['RSD', 'EUR', 'USD', 'BYN', 'PLN'];
+    }
+
+    function persons() {
+      return ['Егор', 'Юлианна', 'Общее'];
+    }
+
+    // Fields the app may change on an existing expense.
+    function editableFields() {
+      return [
+        'amount', 'currency', 'categoryId', 'categoryName', 'subcategoryId', 'subcategoryName',
+        'person', 'description', 'date', 'amounts', 'ratesDate'
+      ];
+    }
+
+    // Always true on create. On update, migrated documents may hold values the app no longer
+    // writes (e.g. an empty currency), so the strict checks apply only to fields being changed.
+    function changes(field) {
+      return resource == null
+        || request.resource.data.diff(resource.data).affectedKeys().hasAny([field]);
+    }
+
+    function isValidConvertedAmount(amounts, currency) {
+      return amounts.get(currency, 0) is number && amounts.get(currency, 0) >= 0;
+    }
+
+    function isValidAmounts(amounts) {
+      return amounts.keys().hasOnly(currencies())
+        && isValidConvertedAmount(amounts, 'RSD')
+        && isValidConvertedAmount(amounts, 'EUR')
+        && isValidConvertedAmount(amounts, 'USD')
+        && isValidConvertedAmount(amounts, 'BYN')
+        && isValidConvertedAmount(amounts, 'PLN');
+    }
+
     function isValidExpense(data) {
       return data.keys().hasAll([
           'amount', 'currency', 'categoryId', 'categoryName', 'subcategoryId',
@@ -17,19 +54,30 @@ service cloud.firestore {
         ])
         && data.amount is number && data.amount > 0
         && data.currency is string
-        && data.categoryId is string && data.subcategoryId is string
+        && data.categoryId is string && data.categoryName is string
+        && data.subcategoryId is string && data.subcategoryName is string
         && data.person is string
         && data.description is string && data.description.size() <= 200
         && data.date is timestamp
-        && data.amounts is map;
+        && data.amounts is map
+        && (!changes('currency') || data.currency in currencies())
+        && (!changes('person') || data.person in persons())
+        && (!changes('amounts') || isValidAmounts(data.amounts))
+        && (!changes('ratesDate') || data.get('ratesDate', null) == null || data.ratesDate is string);
     }
 
     match /expenses/{expenseId} {
       allow read, delete: if isMember();
       allow create: if isMember()
+        && request.resource.data.keys().hasOnly(editableFields().concat(['source', 'createdBy', 'createdAt']))
         && isValidExpense(request.resource.data)
-        && request.resource.data.createdBy == request.auth.uid;
-      allow update: if isMember() && isValidExpense(request.resource.data);
+        && request.resource.data.source == 'app'
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      // `source`, `createdBy` and `createdAt` can't be changed, and no new fields can be added.
+      allow update: if isMember()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(editableFields())
+        && isValidExpense(request.resource.data);
     }
 
     match /categories/{categoryId} {
