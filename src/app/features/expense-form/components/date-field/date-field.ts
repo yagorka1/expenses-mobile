@@ -33,6 +33,16 @@ export class DateField implements FormValueControl<string> {
     this.value.set(value);
   }
 
+  /** Chrome opens the picker only from its own calendar icon, which is invisible here. */
+  protected openPicker(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    try {
+      input.showPicker?.();
+    } catch {
+      // Unsupported or not allowed (e.g. already open): the native tap behaviour still applies.
+    }
+  }
+
   protected onPick(event: Event): void {
     const { value } = event.target as HTMLInputElement;
     if (value) {

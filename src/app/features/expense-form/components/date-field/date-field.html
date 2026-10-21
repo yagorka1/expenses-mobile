@@ -28,6 +28,7 @@
     [max]="today"
     [value]="value()"
     [disabled]="disabled()"
+    (click)="openPicker($event)"
     (change)="onPick($event)"
   />
 </label>
