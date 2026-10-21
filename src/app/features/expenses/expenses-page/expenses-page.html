@@ -1,5 +1,49 @@
 <div class="page">
-  <h1 class="page__title">Последние траты</h1>
+  <div class="expenses__header">
+    <h1 class="page__title">Последние траты</h1>
+    <button
+      type="button"
+      class="chip"
+      [class.chip--active]="activeFiltersCount()"
+      [attr.aria-expanded]="filtersOpen()"
+      aria-controls="expense-filters"
+      (click)="toggleFilters()"
+    >
+      <svg class="expenses__filter-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
+      Фильтры
+      @if (activeFiltersCount(); as count) {
+        <span>· {{ count }}</span>
+      }
+    </button>
+  </div>
+
+  @if (filtersOpen()) {
+    <section id="expense-filters" class="card expenses__filters">
+      <div class="section">
+        <h2 class="section__label">Период</h2>
+        <app-chip-select label="Период" [options]="periodOptions" [(value)]="period" />
+      </div>
+      <div class="section">
+        <h2 class="section__label">Кто потратил</h2>
+        <app-chip-select label="Кто потратил" [options]="personOptions" [(value)]="person" />
+      </div>
+      <div class="section">
+        <h2 class="section__label">Категория</h2>
+        <app-chip-select label="Категория" [options]="categoryOptions()" [(value)]="categoryId" />
+      </div>
+      @if (categoryId()) {
+        <div class="section">
+          <h2 class="section__label">Подкатегория</h2>
+          <app-chip-select label="Подкатегория" [options]="subcategoryOptions()" [(value)]="subcategoryId" />
+        </div>
+      }
+      @if (activeFiltersCount()) {
+        <button class="button button--ghost button--block" type="button" (click)="resetFilters()">
+          Сбросить фильтры
+        </button>
+      }
+    </section>
+  }
 
   @if (errorMessage(); as error) {
     <app-state-message type="error" [message]="error" />
@@ -18,7 +62,7 @@
     @if (state().loading) {
       <app-state-message type="loading" />
     } @else if (!errorMessage()) {
-      <app-state-message type="empty" [message]="emptyMessage" />
+      <app-state-message type="empty" [message]="emptyMessage()" />
     }
   }
 

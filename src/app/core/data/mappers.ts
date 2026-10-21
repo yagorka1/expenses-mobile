@@ -4,6 +4,8 @@ import { Category, Subcategory } from '../models/category.model';
 import { CurrencyAmounts, Expense, ExpenseDocument, ExpenseDraft } from '../models/expense.model';
 
 type NewExpenseDocument = Omit<ExpenseDocument, 'createdAt'> & { createdAt: FieldValue };
+/** Fields the app may change; `source`, `createdBy` and `createdAt` stay as they were. */
+type ExpenseDocumentUpdate = Omit<ExpenseDocument, 'source' | 'createdBy' | 'createdAt'>;
 
 const SNAPSHOT_READ_OPTIONS = { serverTimestamps: 'estimate' } as const;
 
@@ -51,7 +53,7 @@ export function mapExpense(snapshot: DocumentSnapshot): Expense {
   };
 }
 
-export function toExpenseDocument(draft: ExpenseDraft, amounts: CurrencyAmounts, userId: string): NewExpenseDocument {
+export function toExpenseDocumentUpdate(draft: ExpenseDraft, amounts: CurrencyAmounts): ExpenseDocumentUpdate {
   return {
     amount: draft.amount,
     currency: draft.currency,
@@ -63,6 +65,12 @@ export function toExpenseDocument(draft: ExpenseDraft, amounts: CurrencyAmounts,
     description: draft.description,
     date: Timestamp.fromDate(draft.date),
     amounts,
+  };
+}
+
+export function toExpenseDocument(draft: ExpenseDraft, amounts: CurrencyAmounts, userId: string): NewExpenseDocument {
+  return {
+    ...toExpenseDocumentUpdate(draft, amounts),
     source: EXPENSE_SOURCES.app,
     createdBy: userId,
     createdAt: serverTimestamp(),

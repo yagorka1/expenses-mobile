@@ -1,6 +1,6 @@
 import { EnvironmentProviders, inject, makeEnvironmentProviders } from '@angular/core';
 import { FirebaseOptions, initializeApp } from 'firebase/app';
-import { browserPopupRedirectResolver, indexedDBLocalPersistence, initializeAuth } from 'firebase/auth';
+import { indexedDBLocalPersistence, initializeAuth } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { FIREBASE_APP, FIREBASE_AUTH, FIRESTORE } from './firebase.tokens';
 
@@ -10,12 +10,7 @@ export function provideFirebase(options: FirebaseOptions): EnvironmentProviders 
     {
       provide: FIREBASE_AUTH,
       // IndexedDB persistence keeps the session across PWA restarts, including offline starts.
-      // The resolver enables popup/redirect sign-in (Google).
-      useFactory: () =>
-        initializeAuth(inject(FIREBASE_APP), {
-          persistence: indexedDBLocalPersistence,
-          popupRedirectResolver: browserPopupRedirectResolver,
-        }),
+      useFactory: () => initializeAuth(inject(FIREBASE_APP), { persistence: indexedDBLocalPersistence }),
     },
     {
       provide: FIRESTORE,

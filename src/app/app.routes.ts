@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { APP_ROUTES, ROUTE_PARAMS } from './core/constants/app-routes';
+import { APP_ROUTES, ROUTE_PARAMS, ROUTE_SEGMENTS } from './core/constants/app-routes';
 import { PAGE_TITLES } from './core/constants/messages';
 import { authGuard, guestGuard } from './core/guards/auth.guards';
 
@@ -32,6 +32,12 @@ export const routes: Routes = [
         title: PAGE_TITLES.expenseDetails,
         loadComponent: () =>
           import('./features/expenses/expense-details-page/expense-details-page').then((m) => m.ExpenseDetailsPage),
+      },
+      {
+        path: `${APP_ROUTES.expenses}/:${ROUTE_PARAMS.expenseId}/${ROUTE_SEGMENTS.edit}`,
+        title: PAGE_TITLES.editExpense,
+        loadComponent: () =>
+          import('./features/expense-form/expense-form-page/expense-form-page').then((m) => m.ExpenseFormPage),
       },
       {
         path: APP_ROUTES.statistics,

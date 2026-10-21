@@ -43,6 +43,19 @@
         </dl>
       </section>
     }
+
+    <div class="details__actions">
+      <a class="button button--ghost" [routerLink]="editLink()">Изменить</a>
+      <button class="button button--danger-ghost" type="button" (click)="askDelete()">Удалить</button>
+    </div>
+
+    <app-confirm-dialog
+      [(open)]="confirmDeleteOpen"
+      [title]="confirmMessages.deleteExpenseTitle"
+      [message]="confirmMessages.deleteExpenseMessage"
+      [confirmLabel]="confirmMessages.deleteExpenseConfirm"
+      (confirmed)="delete()"
+    />
   } @else if (errorMessage(); as error) {
     <app-state-message type="error" [message]="error" />
   } @else if (state().loading) {

@@ -17,15 +17,11 @@ export class Shell {
   protected readonly network = inject(NetworkStatusService);
 
   constructor() {
-    // Covers both the sign-out button and a session revoked elsewhere.
+    // The session ends only when the family password is changed in the Firebase console.
     effect(() => {
       if (!this.auth.isAuthenticated()) {
         void this.router.navigateByUrl(ROUTE_LINKS.login);
       }
     });
-  }
-
-  protected signOut(): Promise<void> {
-    return this.auth.signOut();
   }
 }
