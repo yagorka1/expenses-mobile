@@ -2,6 +2,25 @@
   <h1 class="page__title">Статистика</h1>
 
   <app-chip-select label="Период" [options]="periodOptions" [(value)]="period" />
+  @if (isCustomPeriod()) {
+    <div class="statistics__dates">
+      <label class="section">
+        <span class="section__label">С</span>
+        <input class="input" type="date" [max]="customTo()" [value]="customFrom()" (change)="onDatePick('from', $event)" />
+      </label>
+      <label class="section">
+        <span class="section__label">По</span>
+        <input
+          class="input"
+          type="date"
+          [min]="customFrom()"
+          [max]="today"
+          [value]="customTo()"
+          (change)="onDatePick('to', $event)"
+        />
+      </label>
+    </div>
+  }
   <app-chip-select label="Валюта" [options]="currencyOptions" [(value)]="currency" />
 
   @if (errorMessage(); as error) {

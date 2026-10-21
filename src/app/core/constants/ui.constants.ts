@@ -1,6 +1,6 @@
 import { ExpenseFilter, ExpensePeriodFilter } from '../models/expense-filter.model';
 import { SelectOption } from '../models/select-option.model';
-import { StatisticsPeriod } from '../models/statistics.model';
+import { StatisticsPeriod, StatisticsPeriodSelection } from '../models/statistics.model';
 
 export const APP_LOCALE = 'ru';
 export const APP_LOCALE_TAG = 'ru-RU';
@@ -11,6 +11,7 @@ export const DATE_FORMATS = {
   dayHeader: 'EEEE, d MMMM',
   full: 'd MMMM y',
   short: 'd MMM',
+  shortWithYear: 'd MMM y',
 } as const;
 
 export const PERCENT_FORMAT = '1.0-0';
@@ -23,6 +24,13 @@ export const STATISTICS_PERIOD_OPTIONS: readonly SelectOption<StatisticsPeriod>[
 ];
 
 export const DEFAULT_STATISTICS_PERIOD: StatisticsPeriod = 'month';
+
+export const CUSTOM_STATISTICS_PERIOD = 'custom' satisfies StatisticsPeriodSelection;
+
+export const STATISTICS_PERIOD_SELECTION_OPTIONS: readonly SelectOption<StatisticsPeriodSelection>[] = [
+  ...STATISTICS_PERIOD_OPTIONS,
+  { value: CUSTOM_STATISTICS_PERIOD, label: 'Свои даты' },
+];
 
 /** Chip value that disables a filter. */
 export const ANY_FILTER_VALUE = '';

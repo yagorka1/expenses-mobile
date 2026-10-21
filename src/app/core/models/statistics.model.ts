@@ -1,6 +1,8 @@
 import { Expense } from './expense.model';
 
 export type StatisticsPeriod = 'week' | 'month' | 'previous-month' | 'year';
+/** `custom` means the range is picked by the user. */
+export type StatisticsPeriodSelection = StatisticsPeriod | 'custom';
 
 export interface DateRange {
   from: Date;
