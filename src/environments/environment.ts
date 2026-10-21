@@ -9,11 +9,11 @@ import { FirebaseOptions } from 'firebase/app';
  */
 export const environment: { firebase: FirebaseOptions } = {
   firebase: {
-    apiKey: 'REPLACE_ME',
-    authDomain: 'REPLACE_ME.firebaseapp.com',
-    projectId: 'REPLACE_ME',
-    storageBucket: 'REPLACE_ME.firebasestorage.app',
-    messagingSenderId: 'REPLACE_ME',
-    appId: 'REPLACE_ME',
+    apiKey: 'AIzaSyACEe3bmgpM4RvLphALd62tnFoBiRLES0U',
+    authDomain: 'expenses-8231a.firebaseapp.com',
+    projectId: 'expenses-8231a',
+    storageBucket: 'expenses-8231a.firebasestorage.app',
+    messagingSenderId: '1092048085293',
+    appId: '1:1092048085293:web:09339a57f2a9f719eef3a4',
   },
 };
