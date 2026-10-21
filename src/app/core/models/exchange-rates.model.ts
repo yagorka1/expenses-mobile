@@ -5,8 +5,16 @@ export type EurRates = Record<CurrencyCode, number>;
 
 export interface RatesSnapshot {
   rates: EurRates;
-  /** `YYYY-MM-DD` the rates were published for; `null` for the built-in fallback rates. */
+  /**
+   * `YYYY-MM-DD` the rates were published for; `null` when they only stand in for the exact ones
+   * (not loaded yet: stale or another day's rates, or the built-in fallback).
+   */
   date: string | null;
+}
+
+/** Rates the API published for `date`. */
+export interface PublishedRates extends RatesSnapshot {
+  date: string;
 }
 
 export interface CachedExchangeRates {

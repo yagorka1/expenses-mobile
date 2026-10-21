@@ -43,6 +43,23 @@ function amountIn(expense: Expense, currency: CurrencyCode, fallbackRates: EurRa
 
 type SumIn = (expenses: readonly Expense[]) => number;
 
+/**
+ * Whole percents of the shares that add up to 100 (largest remainder method), so that rounding
+ * never makes a list total 99% or 101%.
+ */
+export function toPercents(shares: readonly number[]): number[] {
+  const exact = shares.map((share) => share * 100);
+  const percents = exact.map(Math.floor);
+  const target = Math.min(100, Math.round(exact.reduce((sum, value) => sum + value, 0)));
+  const missing = Math.max(0, target - percents.reduce((sum, value) => sum + value, 0));
+  exact
+    .map((value, index) => ({ index, remainder: value - percents[index] }))
+    .sort((a, b) => b.remainder - a.remainder)
+    .slice(0, missing)
+    .forEach(({ index }) => percents[index]++);
+  return percents;
+}
+
 /** `total` is what shares are relative to: the period total, or the parent item's amount. */
 function toBreakdown(
   groups: ExpenseGroup[],
@@ -50,7 +67,7 @@ function toBreakdown(
   total: number,
   getChildren: (group: ExpenseGroup, amount: number) => BreakdownItem[] = () => [],
 ): BreakdownItem[] {
-  return groups
+  const items = groups
     .map((group) => {
       const amount = sumIn(group.expenses);
       return {
@@ -62,6 +79,8 @@ function toBreakdown(
       };
     })
     .sort((a, b) => b.amount - a.amount);
+  const percents = toPercents(items.map((item) => item.share));
+  return items.map((item, index) => ({ ...item, percent: percents[index] }));
 }
 
 export function buildStatistics(
@@ -94,11 +113,14 @@ export function buildStatistics(
   return { total, count: expenses.length, byCategory, byPerson };
 }
 
-/** Expects expenses sorted by date (newest first) and keeps that order. */
+/**
+ * Expects expenses sorted by date (newest first) and keeps the order of the days. Within a day the
+ * last added expense comes first: app expenses all share the noon of their day.
+ */
 export function groupExpensesByDay(expenses: readonly Expense[]): DayGroup[] {
   return groupExpenses(expenses, (e) => toDateInputValue(e.date), () => '').map((group) => ({
     key: group.key,
     date: group.expenses[0].date,
-    expenses: group.expenses,
+    expenses: [...group.expenses].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
   }));
 }

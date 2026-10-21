@@ -6,16 +6,21 @@ export const LATEST_RATES_URLS: readonly string[] = [
   'https://latest.currency-api.pages.dev/v1/currencies/eur.json',
 ];
 
-/** Rates published for a past day (`YYYY-MM-DD`); the API has them since March 2024. */
+/** Rates published for a past day (`YYYY-MM-DD`), available since {@link RATES_HISTORY_START}. */
 export const historicalRatesUrls = (date: string): readonly string[] => [
   `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/eur.json`,
   `https://${date}.currency-api.pages.dev/v1/currencies/eur.json`,
 ];
 
+/** The first day the API has rates for; earlier days use the latest rates. */
+export const RATES_HISTORY_START = '2024-03-02';
+
 export const EXCHANGE_RATES_TIMEOUT_MS = 5_000;
 export const EXCHANGE_RATES_TTL_MS = 12 * 60 * 60 * 1_000;
 /** How many past days of rates are kept in localStorage. */
 export const HISTORICAL_RATES_CACHE_SIZE = 60;
+/** How many expenses with approximate amounts are re-converted per run. */
+export const RATES_REFINE_BATCH_SIZE = 20;
 
 /** Used only when there are no cached rates and the network is unavailable. */
 export const FALLBACK_EUR_RATES: EurRates = {

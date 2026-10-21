@@ -15,6 +15,8 @@ export const VALIDATION_MESSAGES = {
   categoryRequired: 'Выберите категорию',
   subcategoryRequired: 'Выберите подкатегорию',
   dateRequired: 'Выберите дату',
+  dateInFuture: 'Дата не может быть в будущем',
+  dateTooOld: 'Проверьте год',
   personRequired: 'Выберите, кто потратил',
   descriptionTooLong: 'Слишком длинное описание',
   passwordRequired: 'Введите пароль',
