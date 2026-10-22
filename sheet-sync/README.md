@@ -5,9 +5,14 @@ inside the spreadsheet, so it needs no billing and no server. Sync is one-way: F
 
 - New expenses are appended, edited ones are updated, deleted ones are removed.
 - Matching is by the expense id in column **N** (added by the script). Rows without an id are never touched.
+- The sheet alternates two row fills set cell by cell. After each sync the two hand-entered rows above the first
+  app row are tiled over the rest of the sheet, so appended and deleted rows don't break the pattern.
 - Rows with an id are owned by the app: edit them in the app, manual edits in the sheet are overwritten.
-- Columns the sheet computes itself (month, totals, rates) are copied from the last row as formulas. If they're
-  plain values there, the script writes month and totals (RSD, EUR) as values and leaves the rates empty.
+- The totals in RSD and EUR come from the app (`amounts`: converted with the rates of the expense's own day) and are
+  written as values. If an expense has no conversion, the sheet's formula stays. The rate columns (H–J) remain the
+  sheet's formulas and are informational: the totals no longer use them.
+- The other computed columns (month, rates) are copied from the last row as formulas. If the month isn't a formula
+  there, the script writes it as a value.
 
 ## Setup
 

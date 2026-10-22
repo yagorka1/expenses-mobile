@@ -28,7 +28,7 @@ const COL = {
 };
 const LAST_COLUMN = COL.id;
 
-/** Columns the sheet computes itself (month, totals, rates): copied from the last row as formulas. */
+/** Columns the sheet computes itself (month, totals, rates): copied from the last row as formulas. Totals are then replaced by the app's. */
 const DERIVED_COLUMNS = [2, 7, 8, 9, 10, 11];
 
 const MONTHS = [
@@ -93,11 +93,12 @@ function runSync() {
   const records = new Map();
   expenses.forEach((expense, id) => records.set(id, toRecord(id, expense, timeZone)));
 
+  const rejected = [];
   let updated = 0;
   records.forEach((record, id) => {
     const existing = byId.get(id);
     if (existing && differs(existing.values, record, template)) {
-      writeRecords(sheet, existing.row, [record], template, false);
+      writeRecords(sheet, existing.row, [record], template, false, rejected);
       updated++;
     }
   });
@@ -113,10 +114,16 @@ function runSync() {
     .sort(([, a], [, b]) => a.addedAtMs - b.addedAtMs)
     .map(([, record]) => record);
   if (added.length) {
-    writeRecords(sheet, dataEnd - deleteRows.length + 1, added, template, true);
+    writeRecords(sheet, dataEnd - deleteRows.length + 1, added, template, true, rejected);
   }
 
-  return 'Добавлено: ' + added.length + ', обновлено: ' + updated + ', удалено: ' + deleteRows.length;
+  const ownedRows = [...readSheet(sheet).byId.values()].map((existing) => existing.row);
+  if (ownedRows.length) {
+    restripe(sheet, Math.min(...ownedRows));
+  }
+
+  const summary = 'Добавлено: ' + added.length + ', обновлено: ' + updated + ', удалено: ' + deleteRows.length;
+  return rejected.length ? summary + '. Таблица не приняла (нет в списке?): ' + rejected.join(', ') : summary;
 }
 
 function notify(message) {
@@ -252,8 +259,9 @@ function toRecord(id, expense, timeZone) {
   };
 }
 
+/** `null` when the expense has no such conversion (migrated ones may not): the sheet's formula stays. */
 function round2(value) {
-  return typeof value === 'number' ? Math.round(value * 100) / 100 : '';
+  return typeof value === 'number' ? Math.round(value * 100) / 100 : null;
 }
 
 // ---- Sheet ----
@@ -283,24 +291,24 @@ function readSheet(sheet) {
   return { dataEnd, byId, duplicateRows };
 }
 
-/** The last row is the model for new ones: its formats, and which derived columns are formulas. */
+/** The last row is the model for new ones: which derived columns are formulas there. */
 function readTemplate(sheet, dataEnd) {
-  if (dataEnd <= CONFIG.headerRows) {
-    return { range: null, formulas: {} };
-  }
-  const range = sheet.getRange(dataEnd, 1, 1, LAST_COLUMN);
   const formulas = {};
-  range.getFormulasR1C1()[0].forEach((formula, index) => {
-    if (DERIVED_COLUMNS.indexOf(index + 1) !== -1 && formula.charAt(0) === '=') {
-      formulas[index + 1] = formula;
-    }
-  });
-  return { range, formulas };
+  if (dataEnd > CONFIG.headerRows) {
+    sheet.getRange(dataEnd, 1, 1, LAST_COLUMN).getFormulasR1C1()[0].forEach((formula, index) => {
+      if (DERIVED_COLUMNS.indexOf(index + 1) !== -1 && formula.charAt(0) === '=') {
+        formulas[index + 1] = formula;
+      }
+    });
+  }
+  return { formulas };
 }
 
 /**
- * What the app owns in a row: the inputs, plus the derived cells that aren't formulas in the sheet
- * (month and totals get a plain value then; rates can't be derived and stay as they are).
+ * What the app owns in a row: the inputs and the totals in RSD and EUR (the app converts with the rates
+ * of the expense's own day, not with the sheet's rates), plus the month when it isn't a formula in the
+ * sheet. A getter returning `null` leaves the cell as it is: its formula keeps counting.
+ * The rate columns stay the sheet's formulas; the totals don't use them any more.
  */
 function ownedCells(template) {
   const cells = [
@@ -310,21 +318,20 @@ function ownedCells(template) {
     [COL.amount, (record) => record.amount],
     [COL.currency, (record) => record.currency],
     [COL.person, (record) => record.person],
-  ];
-  [
-    [COL.month, (record) => record.month],
     [COL.totalRsd, (record) => record.totalRsd],
     [COL.totalEur, (record) => record.totalEur],
-  ].forEach((cell) => {
-    if (!template.formulas[cell[0]]) {
-      cells.push(cell);
-    }
-  });
+  ];
+  if (!template.formulas[COL.month]) {
+    cells.push([COL.month, (record) => record.month]);
+  }
   return cells;
 }
 
 function differs(values, record, template) {
-  return ownedCells(template).some(([column, get]) => !sameValue(values[column - 1], get(record)));
+  return ownedCells(template).some(([column, get]) => {
+    const wanted = get(record);
+    return wanted !== null && !sameValue(values[column - 1], wanted);
+  });
 }
 
 function sameValue(cell, wanted) {
@@ -337,30 +344,89 @@ function sameValue(cell, wanted) {
   return String(cell).trim() === String(wanted).trim();
 }
 
-/** Writes consecutive rows from `startRow`; new rows also get the model row's formats and formulas. */
-function writeRecords(sheet, startRow, records, template, isNew) {
+/**
+ * What a dropdown cell accepts, or `null` when it takes anything (no rule, a warning-only rule,
+ * criteria other than a list). The sheet applies writes in a batch at the end of the run, so a rejected
+ * value can't be caught around the write: it has to be checked up front.
+ */
+function dropdownValues(rule, cache) {
+  if (!rule || rule.getAllowInvalid()) {
+    return null;
+  }
+  const criteria = SpreadsheetApp.DataValidationCriteria;
+  const type = rule.getCriteriaType();
+  const [source] = rule.getCriteriaValues();
+  if (type === criteria.VALUE_IN_LIST) {
+    return source.map(String);
+  }
+  if (type === criteria.VALUE_IN_RANGE) {
+    const key = source.getSheet().getSheetId() + '!' + source.getA1Notation();
+    cache[key] = cache[key] || [].concat(...source.getValues()).map(String);
+    return cache[key];
+  }
+  return null;
+}
+
+/**
+ * Writes a column of values. A value that isn't in the cell's dropdown (month, article, currency,
+ * person) is not written: the cell keeps what it had and is added to `rejected`, the rest is written.
+ */
+function setCells(sheet, row, column, values, rejected) {
+  const range = sheet.getRange(row, column, values.length, 1);
+  const rules = range.getDataValidations();
+  const formulas = range.getFormulas();
+  const current = range.getValues();
+  const keep = (index) => [formulas[index][0] || current[index][0]];
+  const cache = {};
+  const result = values.map(([value], index) => {
+    if (value === null) {
+      return keep(index);
+    }
+    const allowed = dropdownValues(rules[index][0], cache);
+    if (allowed === null || value === '' || allowed.indexOf(String(value).trim()) !== -1) {
+      return [value];
+    }
+    rejected.push(String.fromCharCode(64 + column) + (row + index) + ' «' + value + '»');
+    return keep(index);
+  });
+  range.setValues(result);
+}
+
+/**
+ * The sheet alternates two row fills set cell by cell, so appended or deleted rows break the pattern.
+ * Tiles the two rows above the app's first row (hand-entered, so they follow the pattern) over the rest
+ * of the sheet, down to its last pre-formatted row.
+ */
+function restripe(sheet, firstRow) {
+  const height = Math.floor((sheet.getMaxRows() - firstRow + 1) / 2) * 2;
+  if (firstRow - 2 <= CONFIG.headerRows || height < 2) {
+    return;
+  }
+  sheet
+    .getRange(firstRow - 2, 1, 2, LAST_COLUMN)
+    .copyTo(sheet.getRange(firstRow, 1, height, LAST_COLUMN), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+}
+
+/** Writes consecutive rows from `startRow`; new rows also get the model row's formulas. */
+function writeRecords(sheet, startRow, records, template, isNew, rejected) {
   const count = records.length;
   const lastNeeded = startRow + count - 1;
   if (lastNeeded > sheet.getMaxRows()) {
     sheet.insertRowsAfter(sheet.getMaxRows(), lastNeeded - sheet.getMaxRows());
   }
-  if (isNew && template.range) {
-    template.range.copyTo(
-      sheet.getRange(startRow, 1, count, LAST_COLUMN),
-      SpreadsheetApp.CopyPasteType.PASTE_FORMAT,
-      false,
-    );
-  }
-  ownedCells(template).forEach(([column, get]) => {
-    sheet.getRange(startRow, column, count, 1).setValues(records.map((record) => [get(record)]));
-  });
   if (isNew) {
+    // First, so that the owned cells below overwrite them where the app has a value.
     DERIVED_COLUMNS.forEach((column) => {
       if (template.formulas[column]) {
         sheet.getRange(startRow, column, count, 1).setFormulaR1C1(template.formulas[column]);
       }
     });
-    sheet.getRange(startRow, COL.addedAt, count, 1).setValues(records.map((record) => [record.addedAt]));
-    sheet.getRange(startRow, COL.id, count, 1).setValues(records.map((record) => [record.id]));
+  }
+  ownedCells(template).forEach(([column, get]) => {
+    setCells(sheet, startRow, column, records.map((record) => [get(record)]), rejected);
+  });
+  if (isNew) {
+    setCells(sheet, startRow, COL.addedAt, records.map((record) => [record.addedAt]), rejected);
+    setCells(sheet, startRow, COL.id, records.map((record) => [record.id]), rejected);
   }
 }
