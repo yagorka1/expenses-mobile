@@ -12,6 +12,8 @@ Angular 22: standalone components, signals, Signal Forms, zoneless.
 - Statistics for the week, month, previous month, year or a custom range, in EUR or RSD: by person and by category with subcategories.
 - Adding and renaming categories and subcategories (the admin and `expenses-server` are no longer needed for that).
   Running the migration in `my-expenses-bot` again would bring back the old names from MongoDB.
+- An evening reminder at 23:00 if nobody added an expense that day: the bell in the header turns it on for the
+  device; it's sent by the Apps Script in `sheet-sync` (see its README).
 
 ## Categories
 

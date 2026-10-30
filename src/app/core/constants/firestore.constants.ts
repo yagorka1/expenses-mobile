@@ -2,6 +2,7 @@ export const FIRESTORE_COLLECTIONS = {
   expenses: 'expenses',
   categories: 'categories',
   subcategories: 'subcategories',
+  pushDevices: 'pushDevices',
 } as const;
 
 export const FIRESTORE_FIELDS = {

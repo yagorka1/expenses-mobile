@@ -7,6 +7,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
 import { APP_LOCALE } from './core/constants/ui.constants';
+import { PUSH_VAPID_KEY } from './core/firebase/firebase.tokens';
 import { provideFirebase } from './core/firebase/provide-firebase';
 
 registerLocaleData(localeRu);
@@ -17,6 +18,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withFetch()),
     provideFirebase(environment.firebase),
+    { provide: PUSH_VAPID_KEY, useValue: environment.vapidKey },
     { provide: LOCALE_ID, useValue: APP_LOCALE },
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),

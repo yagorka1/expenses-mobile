@@ -19,4 +19,12 @@ export class StorageService {
       // Storage is a convenience here; losing a value is acceptable.
     }
   }
+
+  remove(key: string): void {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Same as above.
+    }
+  }
 }

@@ -131,6 +131,17 @@ service cloud.firestore {
         && isValidName(request.resource.data);
     }
 
+    // Devices that get the evening reminder (ReminderService); the sheet-sync Apps Script reads them as
+    // the family account and deletes the ones FCM no longer knows.
+    match /pushDevices/{deviceId} {
+      allow read, delete: if isMember();
+      allow create, update: if isMember()
+        && request.resource.data.keys().hasOnly(['token', 'updatedAt'])
+        && request.resource.data.token is string
+        && request.resource.data.token.size() > 0 && request.resource.data.token.size() <= 4096
+        && request.resource.data.updatedAt == request.time;
+    }
+
     match /members/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;

@@ -46,6 +46,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Расходы')
     .addItem('Синхронизировать с приложением', 'syncExpenses')
+    .addItem('Отправить тестовое напоминание', 'sendTestReminder')
     .addToUi();
 }
 
@@ -144,12 +145,7 @@ function notify(message) {
 
 /** Script properties (Project settings → Script properties): nothing secret is kept in the code. */
 function readSettings() {
-  const properties = PropertiesService.getScriptProperties().getProperties();
-  const required = ['FIREBASE_API_KEY', 'FIREBASE_PROJECT_ID', 'FAMILY_EMAIL', 'FAMILY_PASSWORD', 'SYNC_FROM'];
-  const missing = required.filter((name) => !properties[name]);
-  if (missing.length) {
-    throw new Error('Не заданы свойства скрипта: ' + missing.join(', '));
-  }
+  const properties = readProperties(['SYNC_FROM']);
   const syncFrom = Utilities.parseDate(
     properties.SYNC_FROM,
     SpreadsheetApp.getActive().getSpreadsheetTimeZone(),
@@ -162,6 +158,17 @@ function readSettings() {
     password: properties.FAMILY_PASSWORD,
     syncFrom,
   };
+}
+
+/** All script properties; the Firebase sign-in ones and `extra` must be set. */
+function readProperties(extra) {
+  const properties = PropertiesService.getScriptProperties().getProperties();
+  const required = ['FIREBASE_API_KEY', 'FIREBASE_PROJECT_ID', 'FAMILY_EMAIL', 'FAMILY_PASSWORD'].concat(extra);
+  const missing = required.filter((name) => !properties[name]);
+  if (missing.length) {
+    throw new Error('Не заданы свойства скрипта: ' + missing.join(', '));
+  }
+  return properties;
 }
 
 // ---- Firestore (REST, as the family account: the security rules apply) ----
@@ -227,10 +234,18 @@ function fetchExpenses(settings, idToken) {
 /** Names of a collection's documents (categories or subcategories) by id. */
 function fetchNames(settings, idToken, collection) {
   const names = new Map();
+  fetchDocuments(settings, idToken, collection, ['name']).forEach((fields, id) => names.set(id, fields.name || ''));
+  return names;
+}
+
+/** All documents of a collection by id, with only the given fields. */
+function fetchDocuments(settings, idToken, collection, fieldPaths) {
+  const documents = new Map();
+  const mask = fieldPaths.map((fieldPath) => '&mask.fieldPaths=' + encodeURIComponent(fieldPath)).join('');
   let pageToken = '';
   do {
     const response = UrlFetchApp.fetch(
-      documentsUrl(settings) + '/' + collection + '?pageSize=300&mask.fieldPaths=name' +
+      documentsUrl(settings) + '/' + collection + '?pageSize=300' + mask +
         (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : ''),
       { headers: { Authorization: 'Bearer ' + idToken }, muteHttpExceptions: true },
     );
@@ -239,11 +254,11 @@ function fetchNames(settings, idToken, collection) {
     }
     const page = JSON.parse(response.getContentText());
     (page.documents || []).forEach((document) => {
-      names.set(document.name.split('/').pop(), fromFields(document.fields || {}).name || '');
+      documents.set(document.name.split('/').pop(), fromFields(document.fields || {}));
     });
     pageToken = page.nextPageToken || '';
   } while (pageToken);
-  return names;
+  return documents;
 }
 
 function fromFields(fields) {
