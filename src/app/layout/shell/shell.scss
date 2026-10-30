@@ -19,6 +19,37 @@
   font-weight: 700;
 }
 
+.shell__reminder {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-left: auto;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-radius: 50%;
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.shell__reminder--on {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.shell__reminder-icon {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 .shell__content {
   padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + var(--space-4));

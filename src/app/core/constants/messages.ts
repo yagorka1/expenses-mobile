@@ -44,6 +44,10 @@ export const TOAST_MESSAGES = {
   categorySaveFailed: 'Не удалось сохранить',
   categorySyncFailed: 'Не удалось сохранить на сервере',
   renamed: 'Название изменено',
+  reminderEnabled: 'В 23:00 напомню, если за день никто не внесёт трат',
+  reminderDisabled: 'Напоминание выключено',
+  reminderDenied: 'Уведомления запрещены — разрешите их в настройках телефона',
+  reminderFailed: 'Не удалось включить напоминание',
 } as const;
 
 export const CONFIRM_MESSAGES = {

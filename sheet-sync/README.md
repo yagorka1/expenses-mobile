@@ -19,7 +19,8 @@ inside the spreadsheet, so it needs no billing and no server. Sync is one-way: F
 1. Open the spreadsheet → Extensions → Apps Script.
 2. Project settings → tick "Show appsscript.json manifest file", then replace its content with `appsscript.json`
    (keep `timeZone` equal to the spreadsheet's: File → Settings).
-3. Replace the content of `Code.gs` with this folder's `Code.gs`.
+3. Replace the content of `Code.gs` with this folder's `Code.gs`, and add a script file `Reminder` with the content
+   of `Reminder.gs` (the evening reminder, see below; it uses the helpers of `Code.gs`).
 4. Project settings → Script properties:
 
    | Property              | Value                                                                  |
@@ -36,6 +37,25 @@ inside the spreadsheet, so it needs no billing and no server. Sync is one-way: F
 The script signs in as the family account, so the Firestore rules apply to it (read access of a member).
 If the sign-in fails with an API key error, the key is restricted to HTTP referrers: allow the Identity Toolkit
 and Firestore APIs without that restriction, or use another key.
+
+## Evening reminder
+
+`Reminder.gs` pushes "Траты за сегодня" at 23:00 (±15 minutes, the time zone of `appsscript.json`) to every device
+that turned the reminder on with the bell in the app's header, unless an expense was **added** that day (by anyone,
+in the app or the bot). The devices' FCM tokens are kept in the `pushDevices` collection; the ones FCM no longer
+knows (the app was removed, notifications turned off) are deleted by the script.
+
+1. Firebase console → Project settings → Cloud Messaging → Web Push certificates → Generate key pair. Put the public
+   key into `vapidKey` in `src/environments/environment.ts`, then build and deploy the app (with the rules).
+2. Firebase console → Project settings → Service accounts → Generate new private key. Paste the whole JSON file into
+   a new script property `FCM_SERVICE_ACCOUNT`. It's a secret: it gives admin access to the project.
+3. In the app (the installed one on iPhone: Safari doesn't offer push in a browser tab) tap the bell and allow
+   notifications.
+4. Menu **Расходы** → "Отправить тестовое напоминание": sends it right away, whatever was added today.
+5. Run `installReminderTrigger` once in the editor.
+
+If the app's API key is restricted to some APIs, the bell needs the Firebase Installations API and the
+FCM Registration API allowed on it.
 
 ## Notes
 
