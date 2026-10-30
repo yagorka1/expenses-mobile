@@ -44,4 +44,5 @@ and Firestore APIs without that restriction, or use another key.
 - An empty answer from Firestore never deletes anything.
 - Deleting a row shrinks fixed ranges like `$A$2:$A$1746` in the budget formulas by one; whole-column
   ranges (`A:A`) are not affected. Appended rows count only if they are inside the formulas' ranges.
-- The «статья» cell is the subcategory name; see `articleFor` in `Code.gs` once the mapping is decided.
+- The «статья» cell is the current subcategory name, looked up by `subcategoryId` (so renaming a subcategory in the
+  app updates the rows on the next sync); see `articleFor` in `Code.gs` once the mapping is decided.

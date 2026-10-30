@@ -7,7 +7,7 @@
   @if (state().data; as expense) {
     <section class="card details__hero">
       <span class="details__amount">{{ expense.amount | money: expense.currency }}</span>
-      <span class="details__subtitle">{{ expense.subcategoryName }} · {{ expense.categoryName }}</span>
+      <span class="details__subtitle">{{ names.subcategory(expense) }} · {{ names.category(expense) }}</span>
       @if (expense.isPending) {
         <span class="badge badge--warning">Ожидает отправки</span>
       }

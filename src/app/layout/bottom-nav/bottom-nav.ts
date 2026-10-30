@@ -13,6 +13,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { link: ROUTE_LINKS.addExpense, label: 'Добавить', icon: 'M12 5v14M5 12h14' },
   { link: ROUTE_LINKS.expenses, label: 'Траты', icon: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01' },
   { link: ROUTE_LINKS.statistics, label: 'Статистика', icon: 'M5 20V10M12 20V4M19 20v-7' },
+  { link: ROUTE_LINKS.categories, label: 'Категории', icon: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' },
 ];
 
 @Component({

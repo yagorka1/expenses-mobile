@@ -42,7 +42,11 @@
     @if (model().categoryId) {
       <section class="section">
         <h2 class="section__label">Подкатегория</h2>
-        <app-chip-select label="Подкатегория" [options]="subcategoryOptions()" [formField]="expenseForm.subcategoryId" />
+        @if (subcategoryOptions().length) {
+          <app-chip-select label="Подкатегория" [options]="subcategoryOptions()" [formField]="expenseForm.subcategoryId" />
+        } @else {
+          <app-state-message type="empty" [message]="emptySubcategoriesMessage" />
+        }
         <app-field-error [field]="expenseForm.subcategoryId" />
       </section>
     }

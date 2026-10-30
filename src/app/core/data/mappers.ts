@@ -1,18 +1,23 @@
-import { DocumentSnapshot, FieldValue, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { DocumentSnapshot, FieldValue, Timestamp, deleteField, serverTimestamp } from 'firebase/firestore';
 import { CURRENCIES, CurrencyCode, DEFAULT_CURRENCY, EXPENSE_SOURCES } from '../constants/expense.constants';
-import { Category, Subcategory } from '../models/category.model';
+import { Category, CategoryDocument, Subcategory, SubcategoryDocument } from '../models/category.model';
 import { CurrencyAmounts, Expense, ExpenseConversion, ExpenseDocument, ExpenseDraft } from '../models/expense.model';
 
-type NewExpenseDocument = Omit<ExpenseDocument, 'createdAt' | 'ratesDate'> & {
-  ratesDate: string | null;
-  createdAt: FieldValue;
-};
+/** What the app writes from a draft; category names aren't stored, they're looked up by id. */
+type ExpenseFields = Omit<
+  ExpenseDocument,
+  'source' | 'createdBy' | 'createdAt' | 'amounts' | 'ratesDate' | 'categoryName' | 'subcategoryName'
+>;
+type NewExpenseDocument = ExpenseFields &
+  ExpenseConversion &
+  Pick<ExpenseDocument, 'source' | 'createdBy'> & { createdAt: FieldValue };
 /**
  * Fields the app may change; `source`, `createdBy` and `createdAt` stay as they were.
  * `amounts` and `ratesDate` are written only when the conversion was recomputed.
+ * The legacy name copies of an old expense are removed: they'd only go stale.
  */
-type ExpenseDocumentUpdate = Omit<ExpenseDocument, 'source' | 'createdBy' | 'createdAt' | 'amounts' | 'ratesDate'> &
-  Partial<ExpenseConversion>;
+type ExpenseDocumentUpdate = ExpenseFields &
+  Partial<ExpenseConversion> & { categoryName: FieldValue; subcategoryName: FieldValue };
 
 const SNAPSHOT_READ_OPTIONS = { serverTimestamps: 'estimate' } as const;
 
@@ -52,6 +57,15 @@ export function mapSubcategory(snapshot: DocumentSnapshot): Subcategory {
   };
 }
 
+/** The app only sets names; the other fields get the values the admin used to default to. */
+export function toCategoryDocument(name: string): CategoryDocument {
+  return { name, description: '' };
+}
+
+export function toSubcategoryDocument(categoryId: string, name: string): SubcategoryDocument {
+  return { categoryId, name, description: '', isNecessary: false };
+}
+
 export function mapExpense(snapshot: DocumentSnapshot): Expense {
   const data = snapshot.data(SNAPSHOT_READ_OPTIONS) ?? {};
   return {
@@ -59,9 +73,9 @@ export function mapExpense(snapshot: DocumentSnapshot): Expense {
     amount: asNumber(data['amount']),
     currency: asCurrency(data['currency']),
     categoryId: asString(data['categoryId']),
-    categoryName: asString(data['categoryName']),
     subcategoryId: asString(data['subcategoryId']),
-    subcategoryName: asString(data['subcategoryName']),
+    storedCategoryName: asString(data['categoryName']),
+    storedSubcategoryName: asString(data['subcategoryName']),
     person: asString(data['person']),
     description: asString(data['description']),
     date: asDate(data['date']),
@@ -75,18 +89,24 @@ export function mapExpense(snapshot: DocumentSnapshot): Expense {
   };
 }
 
-export function toExpenseDocumentUpdate(draft: ExpenseDraft, conversion?: ExpenseConversion): ExpenseDocumentUpdate {
+function toExpenseFields(draft: ExpenseDraft): ExpenseFields {
   return {
     amount: draft.amount,
     currency: draft.currency,
     categoryId: draft.categoryId,
-    categoryName: draft.categoryName,
     subcategoryId: draft.subcategoryId,
-    subcategoryName: draft.subcategoryName,
     person: draft.person,
     description: draft.description,
     date: Timestamp.fromDate(draft.date),
+  };
+}
+
+export function toExpenseDocumentUpdate(draft: ExpenseDraft, conversion?: ExpenseConversion): ExpenseDocumentUpdate {
+  return {
+    ...toExpenseFields(draft),
     ...conversion,
+    categoryName: deleteField(),
+    subcategoryName: deleteField(),
   };
 }
 
@@ -96,7 +116,7 @@ export function toExpenseDocument(
   userId: string,
 ): NewExpenseDocument {
   return {
-    ...toExpenseDocumentUpdate(draft),
+    ...toExpenseFields(draft),
     ...conversion,
     source: EXPENSE_SOURCES.app,
     createdBy: userId,

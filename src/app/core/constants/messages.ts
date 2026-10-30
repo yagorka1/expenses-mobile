@@ -5,6 +5,7 @@ export const PAGE_TITLES = {
   expenseDetails: 'Трата',
   editExpense: 'Изменение траты',
   statistics: 'Статистика',
+  categories: 'Категории',
 } as const;
 
 export const VALIDATION_MESSAGES = {
@@ -21,6 +22,9 @@ export const VALIDATION_MESSAGES = {
   descriptionTooLong: 'Слишком длинное описание',
   passwordRequired: 'Введите пароль',
   passwordTooShort: 'Пароль не короче 6 символов',
+  nameRequired: 'Введите название',
+  nameTooLong: 'Слишком длинное название',
+  nameTaken: 'Такое название уже есть',
 } as const;
 
 export const TOAST_MESSAGES = {
@@ -34,6 +38,12 @@ export const TOAST_MESSAGES = {
   expenseDeleted: 'Трата удалена',
   expenseDeleteQueued: 'Нет сети — трата удалится после подключения',
   expenseDeleteFailed: 'Не удалось удалить трату на сервере',
+  categoryAdded: 'Категория добавлена',
+  subcategoryAdded: 'Подкатегория добавлена',
+  categoryQueued: 'Нет сети — сохранено на телефоне и отправится позже',
+  categorySaveFailed: 'Не удалось сохранить',
+  categorySyncFailed: 'Не удалось сохранить на сервере',
+  renamed: 'Название изменено',
 } as const;
 
 export const CONFIRM_MESSAGES = {
@@ -64,6 +74,9 @@ export const EMPTY_STATE_MESSAGES = {
   expenses: 'Трат пока нет',
   filteredExpenses: 'Нет трат с такими фильтрами',
   statistics: 'За этот период трат нет',
-  categories: 'Категорий нет — добавьте их в админке',
+  categories: 'Категорий нет — добавьте их в разделе «Категории»',
+  subcategories: 'В этой категории нет подкатегорий — добавьте их в разделе «Категории»',
+  noCategories: 'Категорий пока нет',
+  noSubcategories: 'Подкатегорий нет — без них категорию не выбрать в трате',
   expenseNotFound: 'Трата не найдена',
 } as const;

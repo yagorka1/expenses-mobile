@@ -1,8 +1,8 @@
 @let item = expense();
 <a class="expense-item" [routerLink]="link()">
   <span class="expense-item__main">
-    <span class="expense-item__title">{{ item.subcategoryName }}</span>
-    <span class="expense-item__meta">{{ item.categoryName }} · {{ item.person }}</span>
+    <span class="expense-item__title">{{ names.subcategory(item) }}</span>
+    <span class="expense-item__meta">{{ names.category(item) }} · {{ item.person }}</span>
     @if (item.description) {
       <span class="expense-item__description">{{ item.description }}</span>
     }

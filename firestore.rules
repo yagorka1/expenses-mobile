@@ -19,7 +19,8 @@ service cloud.firestore {
       return ['Егор', 'Юлианна', 'Общее'];
     }
 
-    // Fields the app may change on an existing expense.
+    // Fields the app may change on an existing expense. `categoryName` and `subcategoryName` are legacy
+    // copies: the app no longer writes them and removes them on edit, installs not yet updated still do.
     function editableFields() {
       return [
         'amount', 'currency', 'categoryId', 'categoryName', 'subcategoryId', 'subcategoryName',
@@ -54,19 +55,25 @@ service cloud.firestore {
       return date >= timestamp.date(2000, 1, 1) && date <= request.time + duration.value(2, 'd');
     }
 
+    // Names are looked up by id, so the ids must point to an existing subcategory of that category.
+    function isValidCategory(data) {
+      return get(/databases/$(database)/documents/subcategories/$(data.subcategoryId)).data.categoryId
+        == data.categoryId;
+    }
+
     function isValidExpense(data) {
       return data.keys().hasAll([
-          'amount', 'currency', 'categoryId', 'categoryName', 'subcategoryId',
-          'subcategoryName', 'person', 'description', 'date', 'amounts'
+          'amount', 'currency', 'categoryId', 'subcategoryId', 'person', 'description', 'date', 'amounts'
         ])
         && data.amount is number && data.amount > 0
         && data.currency is string
-        && data.categoryId is string && data.categoryName is string
-        && data.subcategoryId is string && data.subcategoryName is string
+        && data.categoryId is string && data.subcategoryId is string
+        && data.get('categoryName', '') is string && data.get('subcategoryName', '') is string
         && data.person is string
         && data.description is string && data.description.size() <= 200
         && data.date is timestamp
         && data.amounts is map
+        && ((!changes('categoryId') && !changes('subcategoryId')) || isValidCategory(data))
         && (!changes('currency') || data.currency in currencies())
         && (!changes('person') || data.person in persons())
         && (!changes('date') || isValidDate(data.date))
@@ -89,12 +96,39 @@ service cloud.firestore {
         && isValidExpense(request.resource.data);
     }
 
+    // The upper bound is CATEGORY_NAME_MAX_LENGTH in category.constants.ts.
+    function isValidName(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 40;
+    }
+
+    // The app only adds and renames. No deleting: expenses refer to categories by id and take their
+    // names from here.
     match /categories/{categoryId} {
-      allow read, write: if isMember();
+      allow read: if isMember();
+      allow create: if isMember()
+        && request.resource.data.keys().hasOnly(['name', 'description'])
+        && request.resource.data.keys().hasAll(['name', 'description'])
+        && isValidName(request.resource.data)
+        && request.resource.data.description is string;
+      allow update: if isMember()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && isValidName(request.resource.data);
     }
 
     match /subcategories/{subcategoryId} {
-      allow read, write: if isMember();
+      allow read: if isMember();
+      allow create: if isMember()
+        && request.resource.data.keys().hasOnly(['categoryId', 'name', 'description', 'isNecessary'])
+        && request.resource.data.keys().hasAll(['categoryId', 'name', 'description', 'isNecessary'])
+        && isValidName(request.resource.data)
+        && request.resource.data.description is string
+        && request.resource.data.isNecessary is bool
+        && request.resource.data.categoryId is string
+        && exists(/databases/$(database)/documents/categories/$(request.resource.data.categoryId));
+      // A subcategory stays in its category: its expenses keep the category id.
+      allow update: if isMember()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && isValidName(request.resource.data);
     }
 
     match /members/{uid} {

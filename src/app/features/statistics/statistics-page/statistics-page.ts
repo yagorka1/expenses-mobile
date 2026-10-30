@@ -6,6 +6,7 @@ import {
   DEFAULT_STATISTICS_PERIOD,
   STATISTICS_PERIOD_SELECTION_OPTIONS,
 } from '../../../core/constants/ui.constants';
+import { CategoriesRepository } from '../../../core/data/categories.repository';
 import { ExpensesRepository } from '../../../core/data/expenses.repository';
 import { EurRates } from '../../../core/models/exchange-rates.model';
 import { SelectOption } from '../../../core/models/select-option.model';
@@ -29,6 +30,7 @@ import { SummaryCard } from '../summary-card/summary-card';
 })
 export class StatisticsPage {
   private readonly expensesRepository = inject(ExpensesRepository);
+  private readonly categoriesRepository = inject(CategoriesRepository);
   private readonly preferences = inject(UserPreferencesService);
   private readonly exchangeRates = inject(ExchangeRatesService);
 
@@ -60,7 +62,7 @@ export class StatisticsPage {
   });
   protected readonly state = this.expensesRepository.inRange(this.range);
   protected readonly statistics = computed(() =>
-    buildStatistics(this.state().data, this.currency(), this.fallbackRates()),
+    buildStatistics(this.state().data, this.currency(), this.fallbackRates(), this.categoriesRepository.names),
   );
   protected readonly errorMessage = computed(() => {
     const error = this.state().error;

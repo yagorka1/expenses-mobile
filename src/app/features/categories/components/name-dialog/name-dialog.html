@@ -1,0 +1,19 @@
+<dialog #dialog class="name-dialog" aria-labelledby="name-dialog-title" (close)="cancel()" (click)="onDialogClick($event)">
+  <form class="name-dialog__content" [formRoot]="nameForm">
+    <h2 id="name-dialog-title" class="name-dialog__title">{{ title() }}</h2>
+    <label class="section">
+      <span class="section__label">Название</span>
+      <input class="input" type="text" autocomplete="off" enterkeyhint="done" autofocus [formField]="nameForm.name" />
+      <app-field-error [field]="nameForm.name" />
+    </label>
+    @if (hint()) {
+      <p class="name-dialog__hint">{{ hint() }}</p>
+    }
+    <div class="name-dialog__actions">
+      <button class="button button--ghost" type="button" (click)="cancel()">{{ cancelLabel }}</button>
+      <button class="button" type="submit" [disabled]="nameForm().submitting()">
+        {{ nameForm().submitting() ? 'Сохраняем…' : 'Сохранить' }}
+      </button>
+    </div>
+  </form>
+</dialog>
