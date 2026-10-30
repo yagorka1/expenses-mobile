@@ -1,3 +1,4 @@
+import { CategoryNames } from '../models/category.model';
 import { EurRates } from '../models/exchange-rates.model';
 import { Expense } from '../models/expense.model';
 import { fromDateInputValue } from './date.utils';
@@ -5,14 +6,22 @@ import { buildStatistics, groupExpensesByDay, toPercents } from './statistics.ut
 
 const RATES: EurRates = { EUR: 1, USD: 1.12280227, PLN: 4.36666929, RSD: 117.43791192, BYN: 3.342659 };
 
+const CATEGORY_NAMES: Record<string, string> = { food: 'Еда', home: 'Дом' };
+const SUBCATEGORY_NAMES: Record<string, string> = { shop: 'Магазин', cafe: 'Кафе', rent: 'Аренда' };
+/** Same fallback order as `CategoriesRepository.names`. */
+const NAMES: CategoryNames = {
+  category: (e) => CATEGORY_NAMES[e.categoryId] || e.storedCategoryName || '?',
+  subcategory: (e) => SUBCATEGORY_NAMES[e.subcategoryId] || e.storedSubcategoryName || '?',
+};
+
 const expense = (overrides: Partial<Expense>): Expense => ({
   id: 'id',
   amount: 10,
   currency: 'EUR',
   categoryId: 'food',
-  categoryName: 'Еда',
   subcategoryId: 'shop',
-  subcategoryName: 'Магазин',
+  storedCategoryName: '',
+  storedSubcategoryName: '',
   person: 'Егор',
   description: '',
   date: fromDateInputValue('2026-10-21'),
@@ -43,7 +52,6 @@ describe('buildStatistics', () => {
       amounts: { EUR: 10, RSD: 1174.38 },
       person: 'Юлианна',
       subcategoryId: 'cafe',
-      subcategoryName: 'Кафе',
     }),
     // Migrated without conversions.
     expense({
@@ -52,19 +60,50 @@ describe('buildStatistics', () => {
       currency: 'RSD',
       person: 'Общее',
       categoryId: 'home',
-      categoryName: 'Дом',
       subcategoryId: 'rent',
-      subcategoryName: 'Аренда',
     }),
   ];
 
   it('sums the stored conversions and converts the missing ones', () => {
-    expect(buildStatistics(expenses, 'EUR', RATES).total).toBe(35.55);
-    expect(buildStatistics(expenses, 'RSD', RATES).total).toBe(4174.38);
+    expect(buildStatistics(expenses, 'EUR', RATES, NAMES).total).toBe(35.55);
+    expect(buildStatistics(expenses, 'RSD', RATES, NAMES).total).toBe(4174.38);
+  });
+
+  it('groups by id with the current name, whatever name an old expense was saved with', () => {
+    const { byCategory } = buildStatistics(
+      [
+        expense({ id: '1', amounts: { EUR: 10 } }),
+        expense({ id: '2', amounts: { EUR: 5 }, storedCategoryName: 'Продукты', storedSubcategoryName: 'Супермаркет' }),
+      ],
+      'EUR',
+      RATES,
+      NAMES,
+    );
+
+    expect(byCategory.map(({ label, amount }) => ({ label, amount }))).toEqual([{ label: 'Еда', amount: 15 }]);
+    expect(byCategory[0].children.map((item) => item.label)).toEqual(['Магазин']);
+  });
+
+  it('groups old expenses without ids by their stored names', () => {
+    const { byCategory } = buildStatistics(
+      [
+        expense({ id: '1', amounts: { EUR: 10 }, categoryId: '', subcategoryId: '', storedCategoryName: 'Старое' }),
+        expense({ id: '2', amounts: { EUR: 5 }, categoryId: '', subcategoryId: '', storedCategoryName: 'Старое' }),
+        expense({ id: '3', amounts: { EUR: 1 } }),
+      ],
+      'EUR',
+      RATES,
+      NAMES,
+    );
+
+    expect(byCategory.map(({ label, amount }) => ({ label, amount }))).toEqual([
+      { label: 'Старое', amount: 15 },
+      { label: 'Еда', amount: 1 },
+    ]);
   });
 
   it('gives percents that add up to 100 in every list', () => {
-    const { byCategory, byPerson } = buildStatistics(expenses, 'EUR', RATES);
+    const { byCategory, byPerson } = buildStatistics(expenses, 'EUR', RATES, NAMES);
     const sum = (items: { percent: number }[]): number => items.reduce((total, item) => total + item.percent, 0);
 
     expect(sum(byCategory)).toBe(100);

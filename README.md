@@ -10,6 +10,19 @@ Angular 22: standalone components, signals, Signal Forms, zoneless.
 - One-screen expense entry; the last used currency and person are remembered.
 - Recent expenses grouped by day, and a details screen with amounts in every currency.
 - Statistics for the week, month, previous month, year or a custom range, in EUR or RSD: by person and by category with subcategories.
+- Adding and renaming categories and subcategories (the admin and `expenses-server` are no longer needed for that).
+  Running the migration in `my-expenses-bot` again would bring back the old names from MongoDB.
+
+## Categories
+
+Expenses refer to their category and subcategory by `categoryId` / `subcategoryId` only; the app, the bot and
+the sheet sync look the names up in `categories` / `subcategories` (`CategoriesRepository.names`). So renaming
+changes one document, works offline and shows up everywhere at once. The rules check that the subcategory of a
+new or re-categorized expense exists and belongs to its category, and don't allow deleting categories.
+
+Older expenses also carry `categoryName` / `subcategoryName` copies. They're only a fallback for an expense whose
+ids can't be matched, the app removes them when such an expense is edited, and
+`npm run normalize-categories` in `my-expenses-bot` repairs the ids and removes them everywhere at once.
 - Offline: expenses are stored on the phone and synced automatically once the network is back.
 
 ## Access

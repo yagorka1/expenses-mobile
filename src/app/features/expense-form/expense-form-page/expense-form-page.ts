@@ -54,6 +54,7 @@ export class ExpenseFormPage {
   private readonly selectedDay = computed(() => this.model().date);
 
   protected readonly emptyCategoriesMessage = EMPTY_STATE_MESSAGES.categories;
+  protected readonly emptySubcategoriesMessage = EMPTY_STATE_MESSAGES.subcategories;
   protected readonly notFoundMessage = EMPTY_STATE_MESSAGES.expenseNotFound;
   protected readonly currencyOptions = toOptions(CURRENCIES);
   protected readonly personOptions = toOptions(PERSONS);

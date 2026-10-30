@@ -45,6 +45,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/statistics/statistics-page/statistics-page').then((m) => m.StatisticsPage),
       },
+      {
+        path: APP_ROUTES.categories,
+        title: PAGE_TITLES.categories,
+        loadComponent: () =>
+          import('./features/categories/categories-page/categories-page').then((m) => m.CategoriesPage),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

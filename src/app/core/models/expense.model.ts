@@ -7,10 +7,12 @@ export interface Expense {
   id: string;
   amount: number;
   currency: CurrencyCode;
+  /** Names are looked up by id, see `CategoriesRepository.names`. */
   categoryId: string;
-  categoryName: string;
   subcategoryId: string;
-  subcategoryName: string;
+  /** Legacy copy of the name, `''` when absent: kept only by old expenses whose ids couldn't be matched. */
+  storedCategoryName: string;
+  storedSubcategoryName: string;
   person: string;
   description: string;
   /** The day of the expense; app expenses are stored at noon (see `fromDateInputValue`). */
@@ -28,7 +30,14 @@ export interface Expense {
 
 export type ExpenseDraft = Omit<
   Expense,
-  'id' | 'createdAt' | 'amounts' | 'ratesDate' | 'approximateAmounts' | 'isPending'
+  | 'id'
+  | 'createdAt'
+  | 'amounts'
+  | 'ratesDate'
+  | 'approximateAmounts'
+  | 'isPending'
+  | 'storedCategoryName'
+  | 'storedSubcategoryName'
 >;
 
 /** `amounts` together with the day of the rates they were computed with. */
@@ -43,9 +52,10 @@ export interface ExpenseDocument {
   amount: number;
   currency: CurrencyCode;
   categoryId: string;
-  categoryName: string;
   subcategoryId: string;
-  subcategoryName: string;
+  /** Legacy: no longer written; removed from an old expense when it's edited. */
+  categoryName?: string;
+  subcategoryName?: string;
   person: string;
   description: string;
   date: Timestamp;

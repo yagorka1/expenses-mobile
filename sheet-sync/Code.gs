@@ -36,8 +36,10 @@ const MONTHS = [
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
 ];
 
+/** `categoryName` and `subcategoryName` are legacy copies, read only as a fallback for old expenses. */
 const FIRESTORE_FIELDS = [
-  'amount', 'currency', 'categoryName', 'subcategoryName', 'person', 'description', 'date', 'amounts', 'createdAt',
+  'amount', 'currency', 'categoryId', 'subcategoryId', 'categoryName', 'subcategoryName',
+  'person', 'description', 'date', 'amounts', 'createdAt',
 ];
 
 function onOpen() {
@@ -82,7 +84,12 @@ function runSync() {
   }
   const timeZone = spreadsheet.getSpreadsheetTimeZone();
 
-  const expenses = fetchExpenses(settings);
+  const idToken = signIn(settings);
+  const expenses = fetchExpenses(settings, idToken);
+  const names = {
+    categories: fetchNames(settings, idToken, 'categories'),
+    subcategories: fetchNames(settings, idToken, 'subcategories'),
+  };
   const { dataEnd, byId, duplicateRows } = readSheet(sheet);
   if (expenses.size === 0 && byId.size > 0) {
     // Nothing is deleted on an empty answer: it's more likely a wrong SYNC_FROM or a failed query.
@@ -91,7 +98,7 @@ function runSync() {
 
   const template = readTemplate(sheet, dataEnd);
   const records = new Map();
-  expenses.forEach((expense, id) => records.set(id, toRecord(id, expense, timeZone)));
+  expenses.forEach((expense, id) => records.set(id, toRecord(id, expense, names, timeZone)));
 
   const rejected = [];
   let updated = 0;
@@ -175,16 +182,19 @@ function signIn({ apiKey, email, password }) {
   return JSON.parse(response.getContentText()).idToken;
 }
 
+function documentsUrl(settings) {
+  return 'https://firestore.googleapis.com/v1/projects/' + encodeURIComponent(settings.projectId) +
+    '/databases/(default)/documents';
+}
+
 /** Expenses created since `syncFrom` by id; `createdAt` never changes, so the set is stable across edits. */
-function fetchExpenses(settings) {
+function fetchExpenses(settings, idToken) {
   const response = UrlFetchApp.fetch(
-    'https://firestore.googleapis.com/v1/projects/' +
-      encodeURIComponent(settings.projectId) +
-      '/databases/(default)/documents:runQuery',
+    documentsUrl(settings) + ':runQuery',
     {
       method: 'post',
       contentType: 'application/json',
-      headers: { Authorization: 'Bearer ' + signIn(settings) },
+      headers: { Authorization: 'Bearer ' + idToken },
       payload: JSON.stringify({
         structuredQuery: {
           from: [{ collectionId: CONFIG.collection }],
@@ -214,6 +224,28 @@ function fetchExpenses(settings) {
   return expenses;
 }
 
+/** Names of a collection's documents (categories or subcategories) by id. */
+function fetchNames(settings, idToken, collection) {
+  const names = new Map();
+  let pageToken = '';
+  do {
+    const response = UrlFetchApp.fetch(
+      documentsUrl(settings) + '/' + collection + '?pageSize=300&mask.fieldPaths=name' +
+        (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : ''),
+      { headers: { Authorization: 'Bearer ' + idToken }, muteHttpExceptions: true },
+    );
+    if (response.getResponseCode() !== 200) {
+      throw new Error('Firestore: ' + response.getContentText());
+    }
+    const page = JSON.parse(response.getContentText());
+    (page.documents || []).forEach((document) => {
+      names.set(document.name.split('/').pop(), fromFields(document.fields || {}).name || '');
+    });
+    pageToken = page.nextPageToken || '';
+  } while (pageToken);
+  return names;
+}
+
 function fromFields(fields) {
   const result = {};
   Object.keys(fields).forEach((key) => (result[key] = fromValue(fields[key])));
@@ -233,13 +265,20 @@ function fromValue(value) {
 
 /**
  * The «статья» cell. Kept apart on purpose: how app categories map to the sheet's articles
- * is still to be decided; for now it's the subcategory name as is.
+ * is still to be decided; for now it's the current subcategory name as is. Names are looked up by id;
+ * an old expense whose ids aren't known falls back to the names it was saved with.
  */
-function articleFor(expense) {
-  return expense.subcategoryName || expense.categoryName || '';
+function articleFor(expense, names) {
+  return (
+    names.subcategories.get(expense.subcategoryId) ||
+    expense.subcategoryName ||
+    names.categories.get(expense.categoryId) ||
+    expense.categoryName ||
+    ''
+  );
 }
 
-function toRecord(id, expense, timeZone) {
+function toRecord(id, expense, names, timeZone) {
   const day = Utilities.formatDate(expense.date, timeZone, 'yyyy-MM-dd');
   const amounts = expense.amounts || {};
   const createdAt = expense.createdAt || expense.date;
@@ -247,7 +286,7 @@ function toRecord(id, expense, timeZone) {
     id,
     date: Utilities.parseDate(day, timeZone, 'yyyy-MM-dd'),
     month: MONTHS[Number(day.slice(5, 7)) - 1],
-    article: articleFor(expense),
+    article: articleFor(expense, names),
     comment: expense.description || '',
     amount: expense.amount,
     currency: expense.currency,

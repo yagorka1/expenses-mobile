@@ -3,6 +3,7 @@ export const APP_ROUTES = {
   addExpense: 'add',
   expenses: 'expenses',
   statistics: 'statistics',
+  categories: 'categories',
 } as const;
 
 export const ROUTE_PARAMS = {
@@ -18,6 +19,7 @@ export const ROUTE_LINKS = {
   addExpense: `/${APP_ROUTES.addExpense}`,
   expenses: `/${APP_ROUTES.expenses}`,
   statistics: `/${APP_ROUTES.statistics}`,
+  categories: `/${APP_ROUTES.categories}`,
   expenseDetails: (id: string): string[] => ['/', APP_ROUTES.expenses, id],
   editExpense: (id: string): string[] => ['/', APP_ROUTES.expenses, id, ROUTE_SEGMENTS.edit],
 } as const;

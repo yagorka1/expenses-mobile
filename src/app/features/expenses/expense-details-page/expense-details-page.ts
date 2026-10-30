@@ -5,6 +5,7 @@ import { ROUTE_LINKS } from '../../../core/constants/app-routes';
 import { CURRENCIES } from '../../../core/constants/expense.constants';
 import { CONFIRM_MESSAGES, EMPTY_STATE_MESSAGES, TOAST_MESSAGES } from '../../../core/constants/messages';
 import { DATE_FORMATS } from '../../../core/constants/ui.constants';
+import { CategoriesRepository } from '../../../core/data/categories.repository';
 import { ExpensesRepository } from '../../../core/data/expenses.repository';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -22,6 +23,7 @@ import { MoneyPipe } from '../../../shared/pipes/money.pipe';
 })
 export class ExpenseDetailsPage {
   private readonly expensesRepository = inject(ExpensesRepository);
+  protected readonly names = inject(CategoriesRepository).names;
   private readonly location = inject(Location);
   private readonly network = inject(NetworkStatusService);
   private readonly toast = inject(ToastService);

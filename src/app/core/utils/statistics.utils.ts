@@ -1,4 +1,5 @@
 import { CurrencyCode } from '../constants/expense.constants';
+import { CategoryNames } from '../models/category.model';
 import { EurRates } from '../models/exchange-rates.model';
 import { Expense } from '../models/expense.model';
 import { BreakdownItem, DayGroup, ExpenseStatistics } from '../models/statistics.model';
@@ -83,22 +84,24 @@ function toBreakdown(
   return items.map((item, index) => ({ ...item, percent: percents[index] }));
 }
 
+/** Grouped by ids and labelled with the current names; an old expense without ids, by its stored names. */
 export function buildStatistics(
   expenses: readonly Expense[],
   currency: CurrencyCode,
   fallbackRates: EurRates | null,
+  names: CategoryNames,
 ): ExpenseStatistics {
   const sumIn: SumIn = (group) =>
     roundMoney(group.reduce((sum, expense) => sum + amountIn(expense, currency, fallbackRates), 0));
   const total = sumIn(expenses);
 
   const byCategory = toBreakdown(
-    groupExpenses(expenses, (e) => e.categoryId || e.categoryName, (e) => e.categoryName),
+    groupExpenses(expenses, (e) => e.categoryId || `name:${e.storedCategoryName}`, names.category),
     sumIn,
     total,
     (category, categoryAmount) =>
       toBreakdown(
-        groupExpenses(category.expenses, (e) => e.subcategoryId || e.subcategoryName, (e) => e.subcategoryName),
+        groupExpenses(category.expenses, (e) => e.subcategoryId || `name:${e.storedSubcategoryName}`, names.subcategory),
         sumIn,
         categoryAmount,
       ),
