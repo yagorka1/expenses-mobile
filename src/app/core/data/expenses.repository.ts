@@ -1,4 +1,4 @@
-import { Injectable, Signal, effect, inject, untracked } from '@angular/core';
+import { DOCUMENT, DestroyRef, Injectable, Signal, computed, effect, inject, signal, untracked } from '@angular/core';
 import {
   DocumentReference,
   QueryConstraint,
@@ -18,10 +18,11 @@ import {
 } from 'firebase/firestore';
 import { RATES_REFINE_BATCH_SIZE } from '../constants/exchange-rates.constants';
 import { FIRESTORE_COLLECTIONS, FIRESTORE_FIELDS } from '../constants/firestore.constants';
+import { UNDO_DELETE_MS } from '../constants/ui.constants';
 import { FIRESTORE } from '../firebase/firebase.tokens';
 import { liveDoc, liveQuery } from '../firebase/live-data';
 import { ExpenseFilter } from '../models/expense-filter.model';
-import { Expense, ExpenseConversion, ExpenseDraft, PendingWrite } from '../models/expense.model';
+import { Expense, ExpenseConversion, ExpenseDraft, PendingRemoval, PendingWrite } from '../models/expense.model';
 import { LiveDocState, LiveQueryState } from '../models/live-data.model';
 import { DateRange } from '../models/statistics.model';
 import { AuthService } from '../services/auth.service';
@@ -51,6 +52,10 @@ export class ExpensesRepository {
   private readonly expensesRef = collection(this.db, FIRESTORE_COLLECTIONS.expenses);
   private refining = false;
   private refineAgain = false;
+  /** Expenses passed to {@link remove}: hidden from the lists until the deletion reaches the server. */
+  private readonly hidden = signal<ReadonlySet<string>>(new Set());
+  /** Deletions still waiting out the undo time, by expense id: calling one deletes right away. */
+  private readonly pendingRemovals = new Map<string, () => void>();
 
   constructor() {
     // Also runs on start: approximate amounts may be left from an earlier session without network.
@@ -59,6 +64,16 @@ export class ExpensesRepository {
         untracked(() => void this.refineApproximateAmounts());
       }
     });
+
+    // A closed app wouldn't run the undo timers, and the expense would come back: delete when going to the background.
+    const document = inject(DOCUMENT);
+    const flush = (): void => {
+      if (document.visibilityState === 'hidden') {
+        [...this.pendingRemovals.values()].forEach((commit) => commit());
+      }
+    };
+    document.addEventListener('visibilitychange', flush);
+    inject(DestroyRef).onDestroy(() => document.removeEventListener('visibilitychange', flush));
   }
 
   /**
@@ -66,37 +81,41 @@ export class ExpensesRepository {
    * Filter combinations rely on the composite indexes in `firestore.indexes.json`.
    */
   recent(filter: Signal<ExpenseFilter>, count: Signal<number>): Signal<LiveQueryState<Expense>> {
-    return liveQuery(() => {
-      if (!this.auth.isAuthenticated()) {
-        return null;
-      }
-      const { period, person, categoryId, subcategoryId } = filter();
-      const constraints: QueryConstraint[] = [];
-      if (person) {
-        constraints.push(where(FIRESTORE_FIELDS.person, '==', person));
-      }
-      // A subcategory implies its category, so one equality is enough (and needs fewer indexes).
-      if (subcategoryId) {
-        constraints.push(where(FIRESTORE_FIELDS.subcategoryId, '==', subcategoryId));
-      } else if (categoryId) {
-        constraints.push(where(FIRESTORE_FIELDS.categoryId, '==', categoryId));
-      }
-      if (period) {
-        // Reading `today` re-runs the query after midnight, so "this week" never gets stuck.
-        constraints.push(...dateRangeConstraints(getPeriodRange(period, fromDateInputValue(this.today()))));
-      }
-      return query(this.expensesRef, ...constraints, orderBy(FIRESTORE_FIELDS.date, 'desc'), limit(count()));
-    }, mapExpense);
+    return this.withoutHidden(
+      liveQuery(() => {
+        if (!this.auth.isAuthenticated()) {
+          return null;
+        }
+        const { period, person, categoryId, subcategoryId } = filter();
+        const constraints: QueryConstraint[] = [];
+        if (person) {
+          constraints.push(where(FIRESTORE_FIELDS.person, '==', person));
+        }
+        // A subcategory implies its category, so one equality is enough (and needs fewer indexes).
+        if (subcategoryId) {
+          constraints.push(where(FIRESTORE_FIELDS.subcategoryId, '==', subcategoryId));
+        } else if (categoryId) {
+          constraints.push(where(FIRESTORE_FIELDS.categoryId, '==', categoryId));
+        }
+        if (period) {
+          // Reading `today` re-runs the query after midnight, so "this week" never gets stuck.
+          constraints.push(...dateRangeConstraints(getPeriodRange(period, fromDateInputValue(this.today()))));
+        }
+        return query(this.expensesRef, ...constraints, orderBy(FIRESTORE_FIELDS.date, 'desc'), limit(count()));
+      }, mapExpense),
+    );
   }
 
   /** Expenses within the range, newest first. Must be called in an injection context. */
   inRange(range: Signal<DateRange>): Signal<LiveQueryState<Expense>> {
-    return liveQuery(
-      () =>
-        this.auth.isAuthenticated()
-          ? query(this.expensesRef, ...dateRangeConstraints(range()), orderBy(FIRESTORE_FIELDS.date, 'desc'))
-          : null,
-      mapExpense,
+    return this.withoutHidden(
+      liveQuery(
+        () =>
+          this.auth.isAuthenticated()
+            ? query(this.expensesRef, ...dateRangeConstraints(range()), orderBy(FIRESTORE_FIELDS.date, 'desc'))
+            : null,
+        mapExpense,
+      ),
     );
   }
 
@@ -147,9 +166,55 @@ export class ExpensesRepository {
     return { id: ref.id, synced };
   }
 
-  /** Same sync semantics as {@link add}. */
-  remove(id: string): PendingWrite {
-    return { id, synced: deleteDoc(doc(this.expensesRef, id)) };
+  /**
+   * Hides the expense right away and deletes it after {@link UNDO_DELETE_MS} unless `undo` is called first,
+   * or at once when the app goes to the background. The deletion has the same sync semantics as {@link add};
+   * should the server refuse it, the expense shows up again.
+   */
+  remove(id: string): PendingRemoval {
+    let settle: { resolve: () => void; reject: (error: unknown) => void } | undefined;
+    const synced = new Promise<void>((resolve, reject) => (settle = { resolve, reject }));
+    const show = (): void => this.hidden.update((hidden) => new Set([...hidden].filter((hiddenId) => hiddenId !== id)));
+    const commit = (): void => {
+      clearTimeout(timer);
+      this.pendingRemovals.delete(id);
+      // Still hidden until confirmed: the local cache drops the expense anyway, so it doesn't flash back.
+      deleteDoc(doc(this.expensesRef, id))
+        .then(
+          () => settle?.resolve(),
+          (error: unknown) => settle?.reject(error),
+        )
+        .finally(show);
+    };
+    const timer = setTimeout(commit, UNDO_DELETE_MS);
+
+    this.pendingRemovals.get(id)?.();
+    this.pendingRemovals.set(id, commit);
+    this.hidden.update((hidden) => new Set(hidden).add(id));
+
+    return {
+      id,
+      synced,
+      undo: () => {
+        if (this.pendingRemovals.get(id) !== commit) {
+          return false;
+        }
+        clearTimeout(timer);
+        this.pendingRemovals.delete(id);
+        show();
+        settle?.resolve();
+        return true;
+      },
+    };
+  }
+
+  /** Drops the expenses being removed, see {@link remove}. */
+  private withoutHidden(state: Signal<LiveQueryState<Expense>>): Signal<LiveQueryState<Expense>> {
+    return computed(() => {
+      const current = state();
+      const hidden = this.hidden();
+      return hidden.size ? { ...current, data: current.data.filter((expense) => !hidden.has(expense.id)) } : current;
+    });
   }
 
   /** With the rates of the expense's own day when they're cached, approximate ones otherwise. */

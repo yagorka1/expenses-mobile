@@ -72,3 +72,9 @@ export interface PendingWrite {
   /** Settles once Firestore acknowledges the write (may take long while offline). */
   synced: Promise<void>;
 }
+
+/** A deletion that can still be cancelled; `synced` resolves right away when it is. */
+export interface PendingRemoval extends PendingWrite {
+  /** `false` when it's too late: the expense is already being deleted. */
+  undo(): boolean;
+}
