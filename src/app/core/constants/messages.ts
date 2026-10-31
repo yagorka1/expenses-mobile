@@ -38,6 +38,8 @@ export const TOAST_MESSAGES = {
   expenseDeleted: 'Трата удалена',
   expenseDeleteQueued: 'Нет сети — трата удалится после подключения',
   expenseDeleteFailed: 'Не удалось удалить трату на сервере',
+  expenseDeleteUndone: 'Удаление отменено',
+  expenseDeleteTooLate: 'Трата уже удалена',
   categoryAdded: 'Категория добавлена',
   subcategoryAdded: 'Подкатегория добавлена',
   categoryQueued: 'Нет сети — сохранено на телефоне и отправится позже',
@@ -50,9 +52,13 @@ export const TOAST_MESSAGES = {
   reminderFailed: 'Не удалось включить напоминание',
 } as const;
 
+export const TOAST_ACTION_LABELS = {
+  undo: 'Отменить',
+} as const;
+
 export const CONFIRM_MESSAGES = {
   deleteExpenseTitle: 'Удалить трату?',
-  deleteExpenseMessage: 'Отменить удаление будет нельзя',
+  deleteExpenseMessage: 'Отменить удаление можно будет только в первые секунды',
   deleteExpenseConfirm: 'Удалить',
   cancel: 'Отмена',
 } as const;

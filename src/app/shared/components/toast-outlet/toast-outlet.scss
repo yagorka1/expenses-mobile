@@ -22,6 +22,28 @@
   animation: toast-in 0.2s ease-out;
 }
 
+.toast--with-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.toast__message {
+  flex: 1;
+}
+
+.toast__action {
+  flex-shrink: 0;
+  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0;
+  padding: var(--space-2);
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .toast--success {
   background: var(--color-success);
 }

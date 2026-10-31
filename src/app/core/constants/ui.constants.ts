@@ -7,6 +7,9 @@ export const APP_LOCALE_TAG = 'ru-RU';
 
 export const TOAST_DURATION_MS = 3_000;
 
+/** How long a deleted expense can still be restored: it's hidden at once and deleted after this. */
+export const UNDO_DELETE_MS = 5_000;
+
 export const DATE_FORMATS = {
   dayHeader: 'EEEE, d MMMM',
   full: 'd MMMM y',

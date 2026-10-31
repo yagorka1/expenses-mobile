@@ -3,8 +3,13 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ROUTE_LINKS } from '../../../core/constants/app-routes';
 import { CURRENCIES } from '../../../core/constants/expense.constants';
-import { CONFIRM_MESSAGES, EMPTY_STATE_MESSAGES, TOAST_MESSAGES } from '../../../core/constants/messages';
-import { DATE_FORMATS } from '../../../core/constants/ui.constants';
+import {
+  CONFIRM_MESSAGES,
+  EMPTY_STATE_MESSAGES,
+  TOAST_ACTION_LABELS,
+  TOAST_MESSAGES,
+} from '../../../core/constants/messages';
+import { DATE_FORMATS, UNDO_DELETE_MS } from '../../../core/constants/ui.constants';
 import { CategoriesRepository } from '../../../core/data/categories.repository';
 import { ExpensesRepository } from '../../../core/data/expenses.repository';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
@@ -65,10 +70,21 @@ export class ExpenseDetailsPage {
   }
 
   protected delete(): void {
-    const write = this.expensesRepository.remove(this.id());
-    write.synced.catch(() => this.toast.error(TOAST_MESSAGES.expenseDeleteFailed));
+    const removal = this.expensesRepository.remove(this.id());
+    removal.synced.catch(() => this.toast.error(TOAST_MESSAGES.expenseDeleteFailed));
 
-    this.toast.success(this.network.online() ? TOAST_MESSAGES.expenseDeleted : TOAST_MESSAGES.expenseDeleteQueued);
+    const undo = (): void => {
+      if (removal.undo()) {
+        this.toast.info(TOAST_MESSAGES.expenseDeleteUndone);
+      } else {
+        this.toast.error(TOAST_MESSAGES.expenseDeleteTooLate);
+      }
+    };
+    this.toast.success(
+      this.network.online() ? TOAST_MESSAGES.expenseDeleted : TOAST_MESSAGES.expenseDeleteQueued,
+      { label: TOAST_ACTION_LABELS.undo, run: undo },
+      UNDO_DELETE_MS,
+    );
     this.location.back();
   }
 }
