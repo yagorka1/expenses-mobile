@@ -94,8 +94,14 @@ function runSync() {
   };
   const { dataEnd, byId, duplicateRows } = readSheet(sheet);
   if (expenses.size === 0 && byId.size > 0) {
-    // Nothing is deleted on an empty answer: it's more likely a wrong SYNC_FROM or a failed query.
-    throw new Error('Firestore не вернул ни одного расхода (проверьте SYNC_FROM), таблица не изменена');
+    // An empty answer may also be a wrong SYNC_FROM or a failed query: the rows go only if their expenses are gone.
+    const stillThere = fetchExistingIds(settings, idToken, [...byId.keys()]);
+    if (stillThere.length) {
+      throw new Error(
+        'Firestore не вернул расходов после SYNC_FROM, но ' + stillThere.length +
+          ' из строк таблицы ещё есть в базе (проверьте SYNC_FROM), таблица не изменена',
+      );
+    }
   }
 
   const template = readTemplate(sheet, dataEnd);
@@ -230,6 +236,33 @@ function fetchExpenses(settings, idToken) {
     }
   });
   return expenses;
+}
+
+/** Those of the given expense ids whose documents exist. */
+function fetchExistingIds(settings, idToken, ids) {
+  const prefix = 'projects/' + settings.projectId + '/databases/(default)/documents/' + CONFIG.collection + '/';
+  const existing = [];
+  for (let start = 0; start < ids.length; start += 100) {
+    const response = UrlFetchApp.fetch(documentsUrl(settings) + ':batchGet', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + idToken },
+      payload: JSON.stringify({
+        documents: ids.slice(start, start + 100).map((id) => prefix + id),
+        mask: { fieldPaths: ['createdAt'] },
+      }),
+      muteHttpExceptions: true,
+    });
+    if (response.getResponseCode() !== 200) {
+      throw new Error('Firestore: ' + response.getContentText());
+    }
+    JSON.parse(response.getContentText()).forEach(({ found }) => {
+      if (found) {
+        existing.push(found.name.split('/').pop());
+      }
+    });
+  }
+  return existing;
 }
 
 /** Names of a collection's documents (categories or subcategories) by id. */
