@@ -65,4 +65,16 @@ FCM Registration API allowed on it.
 - Deleting a row shrinks fixed ranges like `$A$2:$A$1746` in the budget formulas by one; whole-column
   ranges (`A:A`) are not affected. Appended rows count only if they are inside the formulas' ranges.
 - The «статья» cell is the current subcategory name, looked up by `subcategoryId` (so renaming a subcategory in the
-  app updates the rows on the next sync); see `articleFor` in `Code.gs` once the mapping is decided.
+  app updates the rows on the next sync). The budget's articles are named after the app's subcategories, so a new or
+  renamed subcategory needs the same row in «Бюджет» (column B), otherwise the dropdown rejects it.
+
+## Renaming the articles (one-off)
+
+`Articles.gs` renames the budget's articles to the app's subcategories (see `categories-restructure.md`): in «Бюджет»
+and in every row of «Расходы факт» and «Расходы План», since the budget sums them by name. Do it the same day as
+`npm run remap-categories -- --apply` in `my-expenses-bot`.
+
+1. Make a copy of the spreadsheet (File → Make a copy).
+2. Add a script file `Articles` with the content of `Articles.gs`, update `Code.gs` (the menu item), reload the sheet.
+3. Menu **Расходы** → "Обновить статьи (один раз)". It checks everything first and writes nothing if an old article
+   or a listed row isn't found; once done it refuses to run again.

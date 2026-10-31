@@ -47,6 +47,7 @@ function onOpen() {
     .createMenu('Расходы')
     .addItem('Синхронизировать с приложением', 'syncExpenses')
     .addItem('Отправить тестовое напоминание', 'sendTestReminder')
+    .addItem('Обновить статьи (один раз)', 'updateArticles')
     .addToUi();
 }
 
@@ -279,9 +280,9 @@ function fromValue(value) {
 // ---- Expense → sheet row ----
 
 /**
- * The «статья» cell. Kept apart on purpose: how app categories map to the sheet's articles
- * is still to be decided; for now it's the current subcategory name as is. Names are looked up by id;
- * an old expense whose ids aren't known falls back to the names it was saved with.
+ * The «статья» cell: the current subcategory name, since the budget's articles are named after the app's
+ * subcategories (see categories-restructure.md and Articles.gs). Names are looked up by id; an old expense
+ * whose ids aren't known falls back to the names it was saved with.
  */
 function articleFor(expense, names) {
   return (

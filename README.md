@@ -22,6 +22,9 @@ the sheet sync look the names up in `categories` / `subcategories` (`CategoriesR
 changes one document, works offline and shows up everywhere at once. The rules check that the subcategory of a
 new or re-categorized expense exists and belongs to its category, and don't allow deleting categories.
 
+Subcategories are named after the articles of the budget spreadsheet (`categories-restructure.md`): the sheet sync
+writes the subcategory name as the article, so a new or renamed subcategory needs the same row in the sheet.
+
 Older expenses also carry `categoryName` / `subcategoryName` copies. They're only a fallback for an expense whose
 ids can't be matched, the app removes them when such an expense is edited, and
 `npm run normalize-categories` in `my-expenses-bot` repairs the ids and removes them everywhere at once.
