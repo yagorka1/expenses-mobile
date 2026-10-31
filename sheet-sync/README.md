@@ -61,7 +61,9 @@ FCM Registration API allowed on it.
 
 - `SYNC_FROM` decides which rows the script owns. Don't move it later: rows of expenses created before it
   would be treated as deleted. Pick the day after the last expense entered in the sheet by hand.
-- An empty answer from Firestore never deletes anything.
+- An empty answer from Firestore deletes rows only after checking by id that their expenses are really gone (e.g. the
+  last ones were deleted in the app). If any of them still exists, it's more likely a wrong `SYNC_FROM` or a failed
+  query: the sheet is left as it is.
 - Deleting a row shrinks fixed ranges like `$A$2:$A$1746` in the budget formulas by one; whole-column
   ranges (`A:A`) are not affected. Appended rows count only if they are inside the formulas' ranges.
 - The «статья» cell is the current subcategory name, looked up by `subcategoryId` (so renaming a subcategory in the
